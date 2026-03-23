@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Grievance Portal - Sangi RCM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#f4f7fb] flex h-screen overflow-hidden font-sans">
+
+<aside class="w-64 bg-[#1e293b] text-white flex flex-col justify-between shadow-xl h-screen fixed">
+    <div>
+        <div class="p-6 border-b border-gray-700">
+            <h1 class="text-2xl font-bold">HR Portal</h1>
+            <p class="text-sm text-gray-400 mt-1">Hello, {{ user.first_name }}</p>
+        </div>
+        <nav class="p-4 space-y-2">
+            <a href="{% url 'hr_dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 text-gray-300 transition">🏢 Live Monitoring</a>
+            <a href="{% url 'hr_dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 text-gray-300 transition">✅ Leave Approvals</a>
+            <a href="{% url 'hr_dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 text-gray-300 transition">👥 Manage Staff</a>
+            <a href="{% url 'hr_grievance_list' %}" class="flex items-center gap-3 p-3 rounded-lg bg-white/20 text-white font-semibold transition">
+                🛡 <span class="flex-1">Grievances</span>
+                {% if open > 0 %}<span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ open }}</span>{% endif %}
+            </a>
+            <a href="{% url 'hr_notice_board' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 text-gray-300 transition">📢 Company Notices</a>
+        </nav>
+    </div>
+    <div class="p-4">
+        <a href="{% url 'logout_view' %}" class="block w-full text-center bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg">Logout</a>
+    </div>
+</aside>
+
+<main class="ml-64 flex-1 overflow-y-auto p-8">
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg font-bold flex justify-between items-center {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+            <span>{{ message }}</span>
+            <button onclick="this.parentElement.style.display='none'" class="text-xl">x</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">🛡 Grievance Portal</h2>
+        <p class="text-gray-500 mt-1">Review and respond to employee grievances</p>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="bg-[#3b82f6] text-white rounded-xl p-5 text-center shadow">
+            <p class="text-3xl font-black">{{ total }}</p>
+            <p class="text-xs uppercase tracking-wider mt-1 opacity-90">Total Filed</p>
+        </div>
+        <div class="bg-[#f59e0b] text-white rounded-xl p-5 text-center shadow">
+            <p class="text-3xl font-black">{{ open }}</p>
+            <p class="text-xs uppercase tracking-wider mt-1 opacity-90">Open</p>
+        </div>
+        <div class="bg-[#10b981] text-white rounded-xl p-5 text-center shadow">
+            <p class="text-3xl font-black">{{ resolved }}</p>
+            <p class="text-xs uppercase tracking-wider mt-1 opacity-90">Resolved</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <span class="text-sm font-semibold text-gray-600">Filter:</span>
+        <a href="{% url 'hr_grievance_list' %}" class="px-4 py-1.5 rounded-full text-sm font-semibold border {% if not status_filter and not category_filter %}bg-[#1e293b] text-white{% else %}border-gray-300 text-gray-600{% endif %}">All</a>
+        <a href="?status=open" class="px-4 py-1.5 rounded-full text-sm font-semibold border {% if status_filter == 'open' %}bg-amber-500 text-white{% else %}border-gray-300 text-gray-600{% endif %}">Open</a>
+        <a href="?status=resolved" class="px-4 py-1.5 rounded-full text-sm font-semibold border {% if status_filter == 'resolved' %}bg-emerald-500 text-white{% else %}border-gray-300 text-gray-600{% endif %}">Resolved</a>
+        <a href="?category=General" class="px-4 py-1.5 rounded-full text-sm font-semibold border {% if category_filter == 'General' %}bg-[#1e293b] text-white{% else %}border-gray-300 text-gray-600{% endif %}">General</a>
+        <a href="?category=Payroll" class="px-4 py-1.5 rounded-full text-sm font-semibold border {% if category_filter == 'Payroll' %}bg-blue-500 text-white{% else %}border-gray-300 text-gray-600{% endif %}">Payroll</a>
+    </div>
+
+    {% if grievances %}
+    <div class="space-y-4">
+        {% for g in grievances %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+                <div class="flex items-start gap-4 flex-1">
+                    <div class="text-2xl font-black text-red-500 min-w-[50px]">#{{ g.pk }}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 class="text-base font-bold text-gray-800">{{ g.subject }}</h3>
+                            {% if g.category == 'Payroll' %}
+                            <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded">💰 Payroll</span>
+                            {% else %}
+                            <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded">📝 General</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-gray-500 mb-2">👤 <strong>{{ g.submitted_by.user.get_full_name|default:g.submitted_by.user.username }}</strong> &nbsp;|&nbsp; 📅 {{ g.submitted_on|date:"d M Y, h:i A" }}</p>
+                        <p class="text-sm text-gray-600 leading-relaxed">{{ g.description|truncatechars:200 }}</p>
+                        {% if g.admin_notes %}
+                        <div class="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">💬 <strong>HR Response:</strong> {{ g.admin_notes }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-3">
+                    {% if g.is_resolved %}
+                    <span class="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full"><span class="w-2 h-2 bg-green-500 rounded-full"></span> Resolved</span>
+                    {% else %}
+                    <span class="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full"><span class="w-2 h-2 bg-amber-500 rounded-full"></span> Open</span>
+                    {% endif %}
+                    <button onclick="openModal({{ g.pk }}, '{{ g.subject|escapejs }}', '{{ g.description|escapejs }}', {{ g.is_resolved|yesno:'true,false' }}, '{{ g.admin_notes|default:'' |escapejs }}')"
+                        class="bg-[#1e293b] hover:bg-gray-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Respond</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center">
+        <div class="text-5xl mb-4">📭</div>
+        <p class="text-gray-400 font-medium">No grievances found.</p>
+    </div>
+    {% endif %}
+</main>
+
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-2xl overflow-hidden">
+        <div class="bg-[#1e293b] text-white px-6 py-5 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-bold" id="modal-title">Grievance Details</h3>
+                <p class="text-xs text-gray-400 mt-0.5" id="modal-id"></p>
+            </div>
+            <button onclick="closeModal()" class="bg-white/10 hover:bg-white/20 text-white w-8 h-8 rounded-lg flex items-center justify-center">x</button>
+        </div>
+        <div class="p-6">
+            <div class="mb-4">
+                <p class="text-xs font-bold uppercase text-gray-400 mb-1">Description</p>
+                <p class="text-sm text-gray-700 leading-relaxed" id="modal-desc"></p>
+            </div>
+            <form method="POST" id="modal-form">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="text-xs font-bold uppercase text-gray-400 mb-1 block">HR Response / Notes</label>
+                    <textarea name="admin_notes" id="modal-notes" rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]" placeholder="Write your response to the employee..."></textarea>
+                </div>
+                <div class="mb-5">
+                    <label class="text-xs font-bold uppercase text-gray-400 mb-2 block">Status</label>
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="is_resolved" value="false" id="radio-open"/>
+                            <span class="text-sm font-medium text-amber-600">Keep Open</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="is_resolved" value="true" id="radio-resolved"/>
+                            <span class="text-sm font-medium text-green-600">Mark Resolved</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm font-semibold">Cancel</button>
+                    <button type="submit" class="px-6 py-2 bg-[#1e293b] text-white rounded-lg text-sm font-semibold hover:bg-gray-700">Save Response</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openModal(pk, subject, desc, isResolved, notes) {
+    document.getElementById('modal-title').textContent = subject;
+    document.getElementById('modal-id').textContent = 'Grievance #' + pk;
+    document.getElementById('modal-desc').textContent = desc;
+    document.getElementById('modal-notes').value = notes;
+    document.getElementById('modal-form').action = '/dashboard/hr/grievances/' + pk + '/update/';
+    document.getElementById(isResolved ? 'radio-resolved' : 'radio-open').checked = true;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    document.getElementById('modal-overlay').classList.add('flex');
+}
+function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+    document.getElementById('modal-overlay').classList.remove('flex');
+}
+</script>
+</body>
+</html>
