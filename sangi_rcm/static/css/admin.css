@@ -1,0 +1,39 @@
+/* 1. 🟢 FORCE SIDEBAR TO SOLID BLUE */
+.main-sidebar, .main-sidebar::before {
+    background-color: #0d6efd !important;
+}
+
+/* 🟢 Force sidebar text/icons to be white */
+.main-sidebar .nav-link, 
+.main-sidebar .nav-link i,
+.main-sidebar .brand-text {
+    color: #ffffff !important;
+}
+
+/* 🟢 Force the active tab to be dark blue */
+.main-sidebar .nav-pills .nav-link.active {
+    background-color: #0a58ca !important;
+    color: #ffffff !important;
+}
+
+/* 2. 🟢 FIX THE SQUISHED FORM (Expand it to full width!) */
+.col-12.col-md-9.col-lg-9 {
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+}
+
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* 3. 🟢 SHRINK THE GIANT LOGIN LOGO */
+.login-box .login-logo img {
+    max-width: 200px !important;  
+    max-height: 100px !important; 
+    width: auto !important;
+    height: auto !important;
+    margin-bottom: 10px;
+}

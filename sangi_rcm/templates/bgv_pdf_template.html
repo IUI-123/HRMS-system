@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>BGV Report</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body { font-family: Helvetica, sans-serif; font-size: 11px; color: #333; }
+        .header-container { text-align: center; margin-bottom: 20px; }
+        h1 { color: #1e293b; margin-bottom: 5px; }
+        .meta-text { color: #64748b; font-size: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; vertical-align: top; }
+        th { background-color: #f1f5f9; font-weight: bold; color: #334155; }
+        
+        .list-items { margin: 0; padding-left: 15px; }
+        .list-items li { margin-bottom: 3px; }
+        .no-data { color: #94a3b8; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>Background Verification (BGV) & Dependents Report</h1>
+        <p class="meta-text">Department Filter: <strong>{{ department }}</strong> | Generated On: {{ date_generated }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 10%;">Emp ID</th>
+                <th style="width: 15%;">Name</th>
+                <th style="width: 15%;">Department</th>
+                <th style="width: 30%;">Past Experience / BGV Reference</th>
+                <th style="width: 30%;">Dependent Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ emp.emp_id }}</td>
+                <td>{{ emp.user.first_name }} {{ emp.user.last_name }}</td>
+                <td>{{ emp.department }}</td>
+                
+                <td>
+                    {% if emp.bgv_detail.ref_name %}
+                        <strong>Name:</strong> {{ emp.bgv_detail.ref_name }}<br>
+                        <strong>Post:</strong> {{ emp.bgv_detail.ref_post }}<br>
+                        <strong>Org:</strong> {{ emp.bgv_detail.ref_organization }}<br>
+                        <strong>Phone:</strong> {{ emp.bgv_detail.ref_phone }}
+                    {% else %}
+                        <span class="no-data">Not Submitted</span>
+                    {% endif %}
+                </td>
+                
+                <td>
+                    {% if emp.dependents.all %}
+                        <ul class="list-items">
+                        {% for dep in emp.dependents.all %}
+                            <li><strong>{{ dep.name }}</strong> ({{ dep.relation }}) - DOB: {{ dep.dob|date:"d M Y" }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span class="no-data">No Dependents Added</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

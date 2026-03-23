@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounts & Payroll - Sangi RCM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-[#f4f7fb] flex flex-col md:flex-row h-screen overflow-hidden font-sans">
+
+    <aside class="w-full md:w-64 bg-[#1e293b] text-white flex flex-col justify-between shadow-xl h-auto md:h-full">
+        <div>
+            <div class="p-6 border-b border-gray-700 hidden md:block">
+                <h1 class="text-2xl font-bold tracking-wide">Accounts</h1>
+                <p class="text-sm text-gray-400 mt-1">Hello, {{ user.first_name }}</p>
+            </div>
+            <nav class="p-4 space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-hidden">
+                <button onclick="switchTab('payroll')" id="btn-payroll"
+                    class="w-full text-left p-3 rounded-lg bg-white/10 text-white font-medium transition whitespace-nowrap">💰
+                    Payroll & Slips</button>
+                <button onclick="switchTab('salary')" id="btn-salary"
+                    class="w-full text-left p-3 rounded-lg hover:bg-white/5 text-gray-300 transition whitespace-nowrap">⚙️
+                    Employee Details</button>
+                <button onclick="switchTab('attendance')" id="btn-attendance"
+                    class="w-full text-left p-3 rounded-lg hover:bg-white/5 text-gray-300 transition whitespace-nowrap">📸
+                    My Attendance</button>
+                <button onclick="switchTab('leaves')" id="btn-leaves"
+                    class="w-full text-left p-3 rounded-lg hover:bg-white/5 text-gray-300 transition whitespace-nowrap">📝
+                    My Leaves</button>
+                <button id="btn-resignation" onclick="switchTab('resignation')" class="w-full flex items-center p-3 text-left rounded-lg hover:bg-white/5 text-gray-300 transition">
+                    🚪 <span class="ml-2">Resignation</span>
+                </button>
+                <button onclick="switchTab('bgv')" id="btn-bgv" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+    <span class="text-xl">👨‍👩‍👧‍👦</span> Dependents & BGV
+</button>
+            </nav>
+        </div>
+        <div class="p-4 space-y-2 hidden md:block">
+            {% if user.employeeprofile.is_hr %}
+            <a href="{% url 'hr_dashboard' %}"
+                class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition shadow">⬅️
+                Back to HR</a>
+            {% endif %}
+            <a href="{% url 'logout_view' %}"
+                class="block w-full text-center bg-[#ef4444] hover:bg-red-600 text-white font-bold py-2 rounded-lg transition shadow">Logout</a>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+
+        {% if messages %}
+        <div class="mb-6 space-y-2 max-w-4xl">
+            {% for message in messages %}
+            <div
+                class="p-4 rounded-lg shadow-sm font-bold flex justify-between items-center {% if message.tags == 'error' %} bg-red-100 text-red-700 border border-red-200 {% elif message.tags == 'success' %} bg-green-100 text-green-700 border border-green-200 {% else %} bg-blue-100 text-blue-700 border border-blue-200 {% endif %}">
+                <span>{{ message }}</span>
+                <button onclick="this.parentElement.style.display='none'" class="text-xl hover:opacity-70">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div id="tab-payroll" class="block animate-fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Monthly Payroll Ledger</h2>
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Find employee..."
+                    class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+            </div>
+            
+            <div class="flex justify-end mb-4">
+                <button onclick="openAnnexureModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition">
+                    📊 Download Annexure CSV
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="min-w-full" id="payrollTable">
+                    <thead class="bg-gray-800 text-white text-sm">
+                        <tr>
+                            <th class="p-4 text-left">Employee</th>
+                            <th class="p-4 text-center">Presents</th>
+                            <th class="p-4 text-center text-yellow-400">Lates</th>
+                            <th class="p-4 text-center">Paid Leaves</th>
+                            <th class="p-4 text-center text-red-400">Unpaid Leaves</th>
+                            <th class="p-4 text-center text-blue-300">Base Salary</th>
+                            <th class="p-4 text-center text-green-400">Net Payable</th>
+                            <th class="p-4 text-center">Slip</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for data in payroll_data %}
+                        <tr class="employee-row hover:bg-gray-50">
+                            <td class="p-4 font-bold emp-name">{{ data.profile.user.first_name }} {{ data.profile.user.last_name }}</td>
+                            <td class="p-4 text-center font-bold text-green-600">{{ data.presents }}</td>
+                            <td class="p-4 text-center font-bold text-yellow-600">{{ data.lates }}</td>
+                            <td class="p-4 text-center font-bold text-blue-600">{{ data.paid_leaves }}</td>
+                            <td class="p-4 text-center font-bold text-red-500">{{ data.unpaid_leaves }}</td>
+                            <td class="p-4 text-center font-mono">₹{{ data.profile.base_salary }}</td>
+                            <td class="p-4 text-center font-black text-lg text-green-700 bg-green-50">₹{{ data.net_salary }}</td>
+                            <td class="p-4 text-center">
+                                <a href="{% url 'generate_payslip' data.profile.id month year %}"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold transition shadow">📥 Download</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-salary" class="hidden animate-fade-in">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Employee Bank & Salary Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for emp in all_employees %}
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="h-12 w-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black text-xl">
+                            {{ emp.user.first_name|slice:":1" }}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900">{{ emp.user.first_name }} {{ emp.user.last_name }}</h4>
+                            <p class="text-xs text-gray-500 font-medium">{{ emp.emp_id }} • {{ emp.department }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 mb-4 text-xs text-gray-600 space-y-1">
+                        <p>Salary: <span class="font-bold text-gray-800">{% if emp.base_salary %}₹{{ emp.base_salary }}{% else %}<span class="text-red-500">Not Set</span>{% endif %}</span></p>
+                        <p>A/C No: <span class="font-bold text-gray-800">{% if emp.bank_account %}{{ emp.bank_account }}{% else %}<span class="text-red-500">Not Set</span>{% endif %}</span></p>
+                        <p>IFSC: <span class="font-bold text-gray-800">{% if emp.ifsc_code %}{{ emp.ifsc_code }}{% else %}<span class="text-red-500">Not Set</span>{% endif %}</span></p>
+                    </div>
+                    {% if emp.passbook %}
+                    <a href="{{ emp.passbook.url }}" target="_blank" class="w-full mb-2 bg-green-100 text-green-700 border border-green-200 font-bold py-2 rounded-lg text-sm hover:bg-green-200 transition flex items-center justify-center gap-2">
+                        👁️ View Uploaded Passbook
+                    </a>
+                    {% else %}
+                    <p class="w-full mb-2 text-center text-xs text-orange-500 font-bold p-2 bg-orange-50 rounded border border-orange-100">
+                        ⚠️ Waiting for HR to upload Passbook
+                    </p>
+                    {% endif %}
+
+                    <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.base_salary }}', '{{ emp.bank_account }}', '{{ emp.ifsc_code }}')" class="w-full bg-indigo-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+    ✏️ Edit Annexure Details
+</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="tab-attendance" class="hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">My Attendance Dashboard</h2>
+                <span class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">💡 Click any date to apply for leave</span>
+            </div>
+
+            <!-- PERSONAL ATTENDANCE STATS ONLY -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <div class="bg-[#22c55e] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_present_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Present</p>
+                </div>
+                <div class="bg-[#f59e0b] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_late_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Late</p>
+                </div>
+                <div class="bg-[#ef4444] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_absent_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Absent</p>
+                </div>
+                <div class="bg-[#3b82f6] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_leave_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Leaves</p>
+                </div>
+            </div>
+
+            <!-- PROFILE AND ATTENDANCE TABLE GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                
+                <!-- EMPLOYEE PROFILE CARD -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-fit">
+                    {% if user.employeeprofile.master_photo %}
+                        <img src="{{ user.employeeprofile.master_photo.url }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200 mb-4 shadow-lg">
+                    {% else %}
+                        <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4 shadow-lg">
+                            <span class="text-3xl text-gray-500">👤</span>
+                        </div>
+                    {% endif %}
+                    
+                    <h3 class="text-xl font-bold text-gray-800 mb-1">{{ user.get_full_name|default:user.username }}</h3>
+                    <p class="text-sm text-gray-500 mb-2">Employee ID: {{ user.employeeprofile.emp_id }}</p>
+                    
+                    {% if user.employeeprofile.department %}
+                        <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold border border-blue-200">
+                            {{ user.employeeprofile.department }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- PERSONAL MONTHLY ATTENDANCE TABLE -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 lg:col-span-2">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <h3 class="text-lg md:text-xl font-bold text-gray-800">My Monthly Attendance</h3>
+                        <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
+                            <select name="month" onchange="this.form.submit()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm">
+                                <option value="1" {% if current_month == 1 %}selected{% endif %}>January</option>
+                                <option value="2" {% if current_month == 2 %}selected{% endif %}>February</option>
+                                <option value="3" {% if current_month == 3 %}selected{% endif %}>March</option>
+                                <option value="4" {% if current_month == 4 %}selected{% endif %}>April</option>
+                                <option value="5" {% if current_month == 5 %}selected{% endif %}>May</option>
+                                <option value="6" {% if current_month == 6 %}selected{% endif %}>June</option>
+                                <option value="7" {% if current_month == 7 %}selected{% endif %}>July</option>
+                                <option value="8" {% if current_month == 8 %}selected{% endif %}>August</option>
+                                <option value="9" {% if current_month == 9 %}selected{% endif %}>September</option>
+                                <option value="10" {% if current_month == 10 %}selected{% endif %}>October</option>
+                                <option value="11" {% if current_month == 11 %}selected{% endif %}>November</option>
+                                <option value="12" {% if current_month == 12 %}selected{% endif %}>December</option>
+                            </select>
+                        </form>
+                    </div>
+                    
+                    <div class="max-h-64 overflow-y-auto rounded-lg">
+                        <table class="min-w-full text-sm">
+                            <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                                <tr class="border-b border-gray-200">
+                                    <th class="px-4 py-3 text-left font-bold text-gray-700">Date</th>
+                                    <th class="px-4 py-3 text-center font-bold text-gray-700">In Time</th>
+                                    <th class="px-4 py-3 text-center font-bold text-gray-700">Out Time</th>
+                                    <th class="px-4 py-3 text-center font-bold text-gray-700">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in my_attendance %}
+                                {% if log.date.month == current_month and log.date.year == current_year %}
+                                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                    <td class="px-4 py-3 font-semibold text-gray-800">
+                                        {{ log.date|date:"d M Y" }}
+                                        <p class="text-xs text-gray-500 font-normal">{{ log.date|date:"l" }}</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-gray-700 font-mono">
+                                        {% if log.check_in %}
+                                            <span class="bg-green-50 text-green-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">
+                                                {{ log.check_in|time:"H:i" }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-gray-400 text-xs">--:--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-gray-700 font-mono">
+                                        {% if log.check_out %}
+                                            <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">
+                                                {{ log.check_out|time:"H:i" }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-gray-400 text-xs">--:--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        {% if log.status == 'P' %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-green-100 text-green-700 border border-green-200 shadow-sm">
+                                                ✅ Present
+                                            </span>
+                                        {% elif log.status == 'A' %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-red-100 text-red-700 border border-red-200 shadow-sm">
+                                                ❌ Absent
+                                            </span>
+                                        {% elif log.status == 'L' %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm">
+                                                ⏰ Late
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-blue-100 text-blue-700 border border-blue-200 shadow-sm">
+                                                🏖️ Leave
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 font-medium">
+                                        📭 No attendance records for selected month.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COMPANY HOLIDAYS SECTION (FULL WIDTH) -->
+            <div class="w-full">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">🎉 Upcoming Company Holidays</h3>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <ul class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                        {% for holiday in holidays %}
+                        <li class="p-4 hover:bg-gray-50 transition flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg p-2 text-center min-w-[65px] shadow-sm">
+                                    <span class="block text-[10px] font-black uppercase tracking-widest">{{ holiday.date|date:"M" }}</span>
+                                    <span class="block text-2xl font-black">{{ holiday.date|date:"d" }}</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-gray-800">{{ holiday.name }}</h4>
+                                    <p class="text-sm text-gray-500 font-medium">{{ holiday.date|date:"l" }}</p>
+                                </div>
+                            </div>
+                            <span class="text-2xl text-gray-300">🎊</span>
+                        </li>
+                        {% empty %}
+                        <li class="p-8 text-center text-gray-500 font-medium">No upcoming holidays scheduled at the moment.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-leaves" class="hidden animate-fade-in">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Apply for Leave</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-8 mb-8 max-w-2xl">
+                <form method="POST" action="{% url 'apply_leave' %}">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Start Date</label>
+                            <input type="date" id="leave_start_date" name="start_date" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">End Date</label>
+                            <input type="date" id="leave_end_date" name="end_date" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <input type="text" id="leave_subject" name="subject" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Subject (e.g., Medical Leave)" required>
+                    </div>
+                    <div class="mb-6">
+                        <textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter reason..." required></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-[#1e293b] hover:bg-gray-800 text-white font-bold py-3 rounded-lg transition shadow-lg">Submit Leave Request</button>
+                </form>
+            </div>
+
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4">My Leave Applications</h2>
+            <div class="space-y-4 max-w-4xl">
+                {% for leave in my_leaves %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-3">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <p class="font-bold text-gray-800">{{ leave.start_date }} to {{ leave.end_date }}</p>
+                            {% if leave.status == 'Approved' %}
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest {% if leave.is_paid %} bg-green-100 text-green-700 {% else %} bg-orange-100 text-orange-700 {% endif %}">
+                                {% if leave.is_paid %} PAID LEAVE {% else %} UNPAID LEAVE {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-500 text-sm mt-1">{{ leave.subject }}</p>
+                    </div>
+                    <div>
+                        {% if leave.status == 'Approved' %}
+                        <span class="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-xs font-bold border border-blue-200">Approved</span>
+                        {% elif leave.status == 'Rejected' %}
+                        <span class="bg-red-100 text-red-600 px-4 py-1 rounded-full text-xs font-bold border border-red-200">Rejected</span>
+                        {% else %}
+                        <span class="bg-yellow-100 text-yellow-600 px-4 py-1 rounded-full text-xs font-bold border border-yellow-200">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-white rounded-xl p-6 text-center text-gray-500 border border-gray-100">No leave applications found.</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div id="tab-bgv" class="hidden animate-fade-in mt-4">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Dependents & Background Verification</h2>
+    <p class="text-gray-600 mb-6">Please provide your family details and a past employment reference for HR verification.</p>
+
+    <form id="bgvForm" class="space-y-8">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="submit_bgv">
+
+        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
+            <h3 class="text-xl font-bold text-indigo-700 mb-4 border-b pb-2">👨‍👩‍👧‍👦 Dependent Details (Up to 3)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h4 class="font-bold text-gray-700 mb-3">Dependent 1</h4>
+                    <div class="space-y-3">
+                        <div><label class="block text-xs font-bold text-gray-600">Full Name</label><input type="text" name="dep_name_1" value="{{ dep_1.name|default:'' }}" class="w-full px-3 py-2 border rounded text-sm"></div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600">Relation</label>
+                            <select name="dep_relation_1" class="w-full px-3 py-2 border rounded text-sm">
+                                <option value="">-- Select --</option>
+                                <option value="Father" {% if dep_1.relation == 'Father' %}selected{% endif %}>Father</option>
+                                <option value="Mother" {% if dep_1.relation == 'Mother' %}selected{% endif %}>Mother</option>
+                                <option value="Spouse" {% if dep_1.relation == 'Spouse' %}selected{% endif %}>Spouse</option>
+                                <option value="Child" {% if dep_1.relation == 'Child' %}selected{% endif %}>Child</option>
+                                <option value="Other" {% if dep_1.relation == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-xs font-bold text-gray-600">Date of Birth</label><input type="date" name="dep_dob_1" value="{{ dep_1.dob|date:'Y-m-d' }}" class="w-full px-3 py-2 border rounded text-sm"></div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h4 class="font-bold text-gray-700 mb-3">Dependent 2</h4>
+                    <div class="space-y-3">
+                        <div><label class="block text-xs font-bold text-gray-600">Full Name</label><input type="text" name="dep_name_2" value="{{ dep_2.name|default:'' }}" class="w-full px-3 py-2 border rounded text-sm"></div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600">Relation</label>
+                            <select name="dep_relation_2" class="w-full px-3 py-2 border rounded text-sm">
+                                <option value="">-- Select --</option>
+                                <option value="Father" {% if dep_2.relation == 'Father' %}selected{% endif %}>Father</option>
+                                <option value="Mother" {% if dep_2.relation == 'Mother' %}selected{% endif %}>Mother</option>
+                                <option value="Spouse" {% if dep_2.relation == 'Spouse' %}selected{% endif %}>Spouse</option>
+                                <option value="Child" {% if dep_2.relation == 'Child' %}selected{% endif %}>Child</option>
+                                <option value="Other" {% if dep_2.relation == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-xs font-bold text-gray-600">Date of Birth</label><input type="date" name="dep_dob_2" value="{{ dep_2.dob|date:'Y-m-d' }}" class="w-full px-3 py-2 border rounded text-sm"></div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h4 class="font-bold text-gray-700 mb-3">Dependent 3</h4>
+                    <div class="space-y-3">
+                        <div><label class="block text-xs font-bold text-gray-600">Full Name</label><input type="text" name="dep_name_3" value="{{ dep_3.name|default:'' }}" class="w-full px-3 py-2 border rounded text-sm"></div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600">Relation</label>
+                            <select name="dep_relation_3" class="w-full px-3 py-2 border rounded text-sm">
+                                <option value="">-- Select --</option>
+                                <option value="Father" {% if dep_3.relation == 'Father' %}selected{% endif %}>Father</option>
+                                <option value="Mother" {% if dep_3.relation == 'Mother' %}selected{% endif %}>Mother</option>
+                                <option value="Spouse" {% if dep_3.relation == 'Spouse' %}selected{% endif %}>Spouse</option>
+                                <option value="Child" {% if dep_3.relation == 'Child' %}selected{% endif %}>Child</option>
+                                <option value="Other" {% if dep_3.relation == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-xs font-bold text-gray-600">Date of Birth</label><input type="date" name="dep_dob_3" value="{{ dep_3.dob|date:'Y-m-d' }}" class="w-full px-3 py-2 border rounded text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h3 class="text-xl font-bold text-indigo-700 mb-4 border-b pb-2">🏢 Past Experience Reference</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">Reference Person Name</label><input type="text" name="ref_name" value="{{ existing_bgv.ref_name|default:'' }}" class="w-full px-4 py-2 border rounded-lg"></div>
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">Their Designation / Post</label><input type="text" name="ref_post" value="{{ existing_bgv.ref_post|default:'' }}" class="w-full px-4 py-2 border rounded-lg"></div>
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">Organization Name</label><input type="text" name="ref_organization" value="{{ existing_bgv.ref_organization|default:'' }}" class="w-full px-4 py-2 border rounded-lg"></div>
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">Contact Phone Number</label><input type="text" name="ref_phone" value="{{ existing_bgv.ref_phone|default:'' }}" class="w-full px-4 py-2 border rounded-lg"></div>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+            <button type="submit" id="bgvSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition flex items-center gap-2">💾 Save Details</button>
+        </div>
+    </form>
+</div>
+        
+        <div id="tab-resignation" class="hidden animate-fade-in">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Offboarding & Resignation</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-1 h-fit">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">📝 Submit Resignation</h3>
+                    <form id="resignationForm" onsubmit="submitResignationAJAX(event)">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-600 mb-1">Subject</label>
+                            <input type="text" name="subject" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="e.g., Formal Resignation">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-600 mb-1">Intended Last Date (Estimated)</label>
+                            <input type="date" name="applied_date" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-600 mb-1">Reason / Description</label>
+                            <textarea name="description" rows="4" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="Please provide your reason for leaving..."></textarea>
+                        </div>
+                        
+                        <div id="mail-popup" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center animate-fade-in">
+                            <p class="text-sm text-blue-800 font-bold mb-2">Application saved! Please notify HR directly.</p>
+                            <a id="mail-link" href="#" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-sm flex items-center justify-center gap-2 transition">
+                                ✉️ Send Email to HR
+                            </a>
+                        </div>
+
+                        <button id="resign-submit-btn" type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg transition-all text-sm">
+                            Submit Resignation Application
+                        </button>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2 overflow-x-auto">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4">My Application History</h3>
+                    <table class="min-w-full text-left whitespace-nowrap">
+                        <thead class="bg-gray-50 text-gray-600 font-semibold text-sm">
+                            <tr>
+                                <th class="py-3 px-4">Subject & Date</th>
+                                <th class="py-3 px-4">HR Status</th>
+                                <th class="py-3 px-4">Admin Status</th>
+                                <th class="py-3 px-4">Notice Period End</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700 text-sm">
+                            {% for req in my_resignations %}
+                            <tr class="border-t border-gray-100">
+                                <td class="py-3 px-4 font-bold">{{ req.subject }}<br><span class="text-xs text-gray-400 font-normal">Applied: {{ req.applied_date|date:"d M Y" }}</span></td>
+                                
+                                <td class="py-3 px-4">
+                                    {% if req.hr_status == 'PENDING_HR' %}<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">Pending</span>
+                                    {% elif req.hr_status == 'APPROVED_HR' %}<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Approved</span>
+                                    {% else %}<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Rejected</span><br><span class="text-[10px] text-red-500">{{ req.hr_rejection_reason }}</span>{% endif %}
+                                </td>
+                                
+                                <td class="py-3 px-4">
+                                    {% if req.admin_status == 'PENDING_HR' %}<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">Waiting for HR</span>
+                                    {% elif req.admin_status == 'APPROVED_HR' %}<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">Pending Admin</span>
+                                    {% elif req.admin_status == 'APPROVED_ADMIN' %}<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Notice Period Active</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="py-3 px-4 font-bold text-indigo-600">
+                                    {{ req.notice_period_end_date|date:"d M Y"|default:"Not Started" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="py-6 text-center text-gray-500">No resignation requests found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="missedSwapModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 md:p-8 w-full max-w-md shadow-2xl transform scale-100 transition-transform">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Request Missed Swap</h3>
+                <p class="text-sm text-gray-500 mb-6">Forgot to punch in or out? Submit a request for HR approval.</p>
+                <form method="POST" action="{% url 'request_missed_swap' %}">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+                        <input type="date" name="date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50" required>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Reason (Required)</label>
+                        <input type="text" name="reason" placeholder="e.g., System glitch, Forgot my phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeMissedSwapModal()" class="px-5 py-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold transition">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-lg transition">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="editPayrollModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-lg">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Edit Annexure Details</h3>
+                
+                <form id="updatePayrollForm" >
+                    {% csrf_token %}
+                    <input type="hidden" id="edit_emp_id" name="emp_id">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Base Salary / Amount (₹)</label>
+                            <input type="number" id="edit_base_salary" name="base_salary" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. 25000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Beneficiary Name</label>
+                            <input type="text" id="edit_beneficiary" name="beneficiary_name" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Name on Account">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Bank Account No.</label>
+                            <input type="text" id="edit_bank" name="bank_account" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Acc Number">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">IFSC Code</label>
+                            <input type="text" id="edit_ifsc" name="ifsc_code" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="HDFC0001234">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Branch Code</label>
+                            <input type="text" id="edit_branch" name="branch_code" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Branch Code">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Account Type</label>
+                            <select id="edit_acc_type" name="account_type" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="Savings">Savings</option>
+                                <option value="Current">Current</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-orange-600 bg-orange-50 p-2 rounded mb-4 font-semibold border border-orange-200">
+                        Note: First-time entries save immediately. Modifying existing data requires Super Admin approval.
+                    </p>
+
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button type="button" onclick="closePayrollModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition">Save Details</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+    <div id="annexureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Export Monthly Annexure</h3>
+                <form method="GET" action="{% url 'export_annexure' %}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Select Month</label>
+                        <select name="month" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50" required>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Select Year</label>
+                        <input type="number" name="year" value="2026" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50" required>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mb-4 font-semibold italic">Note: The system will automatically calculate and deduct absents for the selected month.</p>
+
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeAnnexureModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold transition">Cancel</button>
+                        <button type="submit" onclick="closeAnnexureModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition">Download File</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    <div id="toast-notification" class="fixed top-5 right-5 transform transition-all duration-300 translate-x-full opacity-0 z-[100] flex items-center w-full max-w-xs p-4 space-x-3 text-white rounded-lg shadow-2xl">
+        <div id="toast-icon" class="text-xl">✅</div>
+        <div id="toast-message" class="text-sm font-bold">Message here.</div>
+    </div>
+
+    <script>
+        function openMissedSwapModal() {
+            document.getElementById('missedSwapModal').classList.remove('hidden');
+        }
+
+        function closeMissedSwapModal() {
+            document.getElementById('missedSwapModal').classList.add('hidden');
+        }
+
+       function switchTab(tabId) {
+            // 🟢 The Master List of all Accounts Tabs (Including BGV!)
+            const tabs = ['payroll', 'salary', 'attendance', 'leaves', 'resignation', 'bgv'];
+
+            tabs.forEach(tab => {
+                const tabElement = document.getElementById('tab-' + tab);
+                const btnElement = document.getElementById('btn-' + tab);
+
+                if (tabElement && btnElement) {
+                    if (tab === tabId) {
+                        // Show active tab
+                        tabElement.classList.remove('hidden');
+                        tabElement.classList.add('block');
+                        btnElement.className = "w-full flex items-center p-3 text-left rounded-lg bg-white/10 text-white font-medium transition whitespace-nowrap";
+                    } else {
+                        // Hide inactive tabs
+                        tabElement.classList.remove('block');
+                        tabElement.classList.add('hidden');
+                        btnElement.className = "w-full text-left p-3 rounded-lg hover:bg-white/5 text-gray-300 transition whitespace-nowrap";
+                    }
+                }
+            });
+
+            // 🟢 Keep your specific Calendar logic for the Attendance tab!
+            if (tabId === 'attendance') {
+                if (typeof generateCalendar === 'function') generateCalendar(currentDate);
+            }
+        }
+        function filterTable() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let rows = document.getElementsByClassName("employee-row");
+
+            for (let i = 0; i < rows.length; i++) {
+                let nameColumn = rows[i].querySelector(".emp-name").innerText.toLowerCase();
+                if (nameColumn.includes(input)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+
+        function openLeaveForm(dateStr) {
+            switchTab('leaves');
+            document.getElementById('leave_start_date').value = dateStr;
+            document.getElementById('leave_end_date').value = dateStr;
+            document.getElementById('leave_subject').focus();
+        }
+
+        let currentDate = new Date();
+        let rawCalData = '{{ calendar_data|escapejs }}';
+        let attendanceData = rawCalData ? JSON.parse(rawCalData) : {};
+
+        function generateCalendar(date) {
+            const grid = document.getElementById("calendar-grid");
+            const monthLabel = document.getElementById("month-label");
+            if (!grid || !monthLabel) return;
+
+            grid.innerHTML = "";
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            monthLabel.innerText = monthNames[month] + " " + year;
+
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += `<div class="p-2 md:p-4 rounded-lg bg-gray-50 text-gray-400"></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                let fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                let status = attendanceData[fullDate];
+                let colorClass = "bg-gray-50 text-gray-600";
+
+                if (status === 'P') colorClass = "bg-green-100 text-green-700 font-bold border border-green-200 shadow-sm";
+                else if (status === 'L') colorClass = "bg-yellow-100 text-yellow-700 font-bold border border-yellow-200 shadow-sm";
+                else if (status === 'A') colorClass = "bg-red-100 text-red-700 font-bold border border-red-200 shadow-sm";
+                else if (status === 'Leave') colorClass = "bg-blue-100 text-blue-700 font-bold border border-blue-200 shadow-sm";
+                else if (status === 'H') colorClass = "bg-gray-200 text-gray-800 font-bold border border-gray-300 shadow-sm";
+                else if (status === 'E') colorClass = "bg-orange-100 text-orange-700 font-bold border border-orange-200 shadow-sm";
+                else if (status === 'W' || status === 'O') colorClass = "bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 shadow-sm";
+                else if (new Date(year, month, day).getDay() === 0) colorClass = "bg-gray-50 text-red-400";
+
+                grid.innerHTML += `<div onclick="openLeaveForm('${fullDate}')" class="p-2 md:p-4 rounded-lg flex items-center justify-center cursor-pointer hover:scale-105 transition transform ${colorClass}">${day}</div>`;
+            }
+        }
+
+        function changeMonth(offset) {
+            currentDate.setMonth(currentDate.getMonth() + offset);
+            generateCalendar(currentDate);
+        }
+
+        function getCSRFToken() {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 10) === ('csrftoken=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
+            }
+            if (!cookieValue) {
+                const domToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (domToken) cookieValue = domToken.value;
+            }
+            return cookieValue;
+        }
+
+        // 🟢 OPEN AND CLOSE NEW PAYROLL MODAL
+        function openPayrollModal(empId, currentSalary, currentBank, currentIfsc) {
+            document.getElementById('edit_emp_id').value = empId;
+            document.getElementById('edit_base_salary').value = currentSalary && currentSalary !== 'None' ? currentSalary : '';
+            // We will let them fill the rest manually
+            document.getElementById('edit_bank').value = currentBank && currentBank !== 'None' ? currentBank : '';
+            document.getElementById('edit_ifsc').value = currentIfsc && currentIfsc !== 'None' ? currentIfsc : '';
+            
+            document.getElementById('editPayrollModal').classList.remove('hidden');
+        }
+
+        function closePayrollModal() {
+            document.getElementById('editPayrollModal').classList.add('hidden');
+        }
+
+       // 🟢 BLOCK DEFAULT FORM SUBMIT ENTIRELY
+        document.addEventListener("DOMContentLoaded", function() {
+            const form = document.getElementById('updatePayrollForm');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Physically blocks browser refresh
+                    
+                    const formData = new FormData(form);
+                    const empId = document.getElementById('edit_emp_id').value;
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerText;
+                    
+                    submitBtn.innerText = '⏳ Saving...';
+                    submitBtn.disabled = true;
+
+                    fetch(`/dashboard/accounts/update-employee/${empId}/`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        closePayrollModal();
+                        
+                        if (data.success && !data.requires_approval) {
+                            showCustomToast(data.message, 'success');
+                            // WE REMOVED THE RELOAD! The user can close the modal manually.
+                        } else if (data.success && data.requires_approval) {
+                            showCustomToast(data.message, 'warning'); // Blue Popup
+                        } else {
+                            showCustomToast(data.message, 'error'); // Red Popup
+                        }
+
+                        submitBtn.innerText = originalBtnText;
+                        submitBtn.disabled = false;
+                    })
+                    .catch(error => {
+                        closePayrollModal();
+                        showCustomToast("Server error.", 'error');
+                        submitBtn.innerText = originalBtnText;
+                        submitBtn.disabled = false;
+                    });
+                });
+            }
+        });
+        // 🟢 UPGRADED TOAST NOTIFICATION LOGIC (Added Blue Warning State)
+        function showCustomToast(message, type) {
+            const toast = document.getElementById('toast-notification');
+            const icon = document.getElementById('toast-icon');
+            const msgEl = document.getElementById('toast-message');
+
+            msgEl.innerText = message;
+            
+            if (type === 'success') {
+                toast.className = "fixed top-5 right-5 transform transition-all duration-300 z-[100] flex items-center w-full max-w-xs p-4 space-x-3 text-white bg-green-600 rounded-lg shadow-2xl";
+                icon.innerText = "✅";
+            } else if (type === 'warning') {
+                toast.className = "fixed top-5 right-5 transform transition-all duration-300 z-[100] flex items-center w-full max-w-xs p-4 space-x-3 text-white bg-blue-600 rounded-lg shadow-2xl";
+                icon.innerText = "⏳";
+            } else {
+                toast.className = "fixed top-5 right-5 transform transition-all duration-300 z-[100] flex items-center w-full max-w-xs p-4 space-x-3 text-white bg-red-600 rounded-lg shadow-2xl";
+                icon.innerText = "🚫";
+            }
+
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+            }, 3500); // Stays on screen a bit longer so you can read it!
+        }
+        function submitResignationAJAX(event) {
+            event.preventDefault();
+            const form = document.getElementById('resignationForm');
+            const formData = new FormData(form);
+            const submitBtn = document.getElementById('resign-submit-btn');
+            const mailPopup = document.getElementById('mail-popup');
+            
+            submitBtn.innerText = "⏳ Processing...";
+            submitBtn.disabled = true;
+
+            fetch("{% url 'submit_resignation' %}", {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    submitBtn.classList.add('hidden');
+                    mailPopup.classList.remove('hidden');
+                    
+                    const subject = encodeURIComponent(formData.get('subject'));
+                    const body = encodeURIComponent("Hello HR,\n\nI have submitted my formal resignation on the portal. Reason: " + formData.get('description'));
+                    document.getElementById('mail-link').href = `mailto:hr@sangircm.com?subject=${subject}&body=${body}`;
+                    
+                } else {
+                    alert(data.message);
+                    submitBtn.innerText = "Submit Resignation Application";
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                alert("Server Error.");
+                submitBtn.innerText = "Submit Resignation Application";
+                submitBtn.disabled = false;
+            });
+        }
+        // 🟢 OPEN AND CLOSE ANNEXURE EXPORT MODAL
+        function openAnnexureModal() {
+            document.getElementById('annexureModal').classList.remove('hidden');
+        }
+
+        function closeAnnexureModal() {
+            document.getElementById('annexureModal').classList.add('hidden');
+        }
+        // 🟢 BLOCK THE ENTER KEY PAGE RELOAD BUG
+        document.addEventListener("DOMContentLoaded", function() {
+            const form = document.getElementById('updatePayrollForm');
+            if(form) {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Physically blocks the browser reload!
+                    submitPayrollUpdate(event);
+                });
+            }
+        });
+        // 🟢 SUBMIT BGV FORM SILENTLY
+    const bgvForm = document.getElementById('bgvForm');
+    if (bgvForm) {
+        bgvForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('bgvSubmitBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Saving...';
+            btn.disabled = true;
+
+            const formData = new FormData(this);
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                if (data.success) alert(data.message);
+            })
+            .catch(error => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert("❌ Error saving details.");
+            });
+        });
+    }
+    </script>
+</body>
+
+</html>

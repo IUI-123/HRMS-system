@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Admin - Sangi RCM</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        .toast-fade { animation: fadeOut 0.5s ease-in-out 3s forwards; }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    </style>
+</head>
+
+<body class="bg-[#f4f7fb] flex flex-col md:flex-row h-screen overflow-hidden font-sans">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
+
+    <header class="md:hidden bg-[#1e293b] text-white p-4 flex justify-between items-center shadow-md z-40 relative">
+        <h1 class="text-xl font-bold tracking-wide">HR Portal</h1>
+        <button onclick="toggleSidebar()" class="text-white hover:text-gray-300 focus:outline-none text-2xl">☰</button>
+    </header>
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 z-30 w-64 bg-[#1e293b] text-white flex flex-col justify-between shadow-xl transition-transform duration-300 ease-in-out h-full">
+        <div>
+            <div class="p-6 border-b border-gray-700 hidden md:block">
+                <h1 class="text-2xl font-bold tracking-wide">HR Portal</h1>
+                <p class="text-sm text-gray-400 mt-1">Hello, {{ user.first_name }}</p>
+            </div>
+            <div class="p-4 border-b border-gray-700 md:hidden flex justify-between items-center">
+                <p class="text-sm text-gray-400">Hello, {{ user.first_name }}</p>
+                <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white text-xl">✕</button>
+            </div>
+            <nav class="p-4 space-y-2">
+    <button onclick="switchTab('live')" id="btn-live" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">🏢</span> Live Monitoring
+    </button>
+    
+    <button onclick="switchTab('my-leaves')" id="btn-my-leaves" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">📝</span> My Leaves
+    </button>
+    
+    <button onclick="switchTab('my-attendance')" id="btn-my-attendance" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">📸</span> My Attendance
+    </button>
+    
+    <button onclick="switchTab('leaves')" id="btn-leaves" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">✅</span> 
+        <span class="flex-1">Leave Approvals</span>
+        {% if pending_leaves.count > 0 %}
+            <span id="leave-badge" class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{{ pending_leaves.count }}</span>
+        {% endif %}
+    </button>
+    
+    <button onclick="switchTab('staff')" id="btn-staff" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">👥</span> Manage Staff
+    </button>
+    
+    <button onclick="switchTab('export')" id="btn-export" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">📊</span> Export Reports
+    </button>
+
+    <button onclick="switchTab('resignations')" id="btn-resignations" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">🚪</span> Resignations
+    </button>
+
+    <a href="{% url 'hr_notice_board' %}" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
+        <span class="text-xl">📢</span> Company Notices
+    </a>
+</nav>
+        </div>
+        <div class="p-4">
+            <a href="{% url 'logout_view' %}" class="block w-full text-center bg-[#ef4444] hover:bg-red-600 text-white font-bold py-3 rounded-lg transition shadow-lg">Logout</a>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+
+        {% if messages %}
+        <div class="mb-6 space-y-2 max-w-4xl" id="old-messages">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg shadow-sm font-bold flex justify-between items-center {% if message.tags == 'error' %} bg-red-100 text-red-700 border border-red-200 {% elif message.tags == 'success' %} bg-green-100 text-green-700 border border-green-200 {% else %} bg-blue-100 text-blue-700 border border-blue-200 {% endif %}">
+                <span>{{ message }}</span>
+                <button onclick="this.parentElement.style.display='none'" class="text-xl hover:opacity-70">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div id="tab-live" class="block animate-fade-in">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Today's Attendance</h2>
+                    <span class="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg w-fit">{{ today_date }}{% now "d M Y" %}</span>
+                </div>
+                
+                <div class="flex gap-2 flex-wrap">
+                    <input type="text" id="liveSearch" onkeyup="filterLiveTable()" placeholder="🔍 Search Name or ID..." class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button onclick="document.getElementById('manualEntryModal').classList.remove('hidden')" class="bg-[#1e293b] hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg shadow transition flex items-center gap-2">➕ Log Manual Entry</button>
+                </div>
+            </div>
+
+            <!-- TODAY'S REAL-TIME STATS -->
+            <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-8">
+                <div class="bg-[#1e293b] text-white rounded-xl p-4 text-center shadow-lg">
+                    <p class="text-2xl font-black">{{ total_employees }}</p>
+                    <p class="text-[10px] uppercase tracking-wider mt-1 font-semibold text-gray-300">Total Staff</p>
+                </div>
+                <div class="bg-[#22c55e] text-white rounded-xl p-4 text-center shadow-lg">
+                    <p class="text-2xl font-black">{{ present_today }}</p>
+                    <p class="text-[10px] uppercase tracking-wider mt-1 font-semibold">In Office</p>
+                </div>
+                <div class="bg-[#f59e0b] text-white rounded-xl p-4 text-center shadow-lg">
+                    <p class="text-2xl font-black">{{ late_today }}</p>
+                    <p class="text-[10px] uppercase tracking-wider mt-1 font-semibold">Lates</p>
+                </div>
+                <div class="bg-indigo-500 text-white rounded-xl p-4 text-center shadow-lg">
+                    <p class="text-2xl font-black">{{ early_leave_today }}</p>
+                    <p class="text-[10px] uppercase tracking-wider mt-1 font-semibold">Early Leave</p>
+                </div>
+                <div class="bg-gray-500 text-white rounded-xl p-4 text-center shadow-lg">
+                    <p class="text-2xl font-black">{{ half_day_today }}</p>
+                    <p class="text-[10px] uppercase tracking-wider mt-1 font-semibold">Half Days</p>
+                </div>
+                <div class="bg-[#ef4444] text-white rounded-xl p-4 text-center shadow-lg">
+                    <p class="text-2xl font-black">{{ absent_today }}</p>
+                    <p class="text-[10px] uppercase tracking-wider mt-1 font-semibold">Absents</p>
+                </div>
+            </div>
+
+            <!-- TODAY'S LIVE ATTENDANCE TABLE -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto mb-8">
+                <table class="min-w-full text-left whitespace-nowrap">
+                    <thead class="bg-gray-50 text-gray-600 font-semibold text-sm">
+                        <tr>
+                            <th class="py-4 px-6">Employee</th>
+                            <th class="py-4 px-6">Times</th>
+                            <th class="py-4 px-6">Status</th>
+                            <th class="py-4 px-6">Selfie / Loc</th>
+                            <th class="py-4 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700">
+                        {% for att in todays_attendance %}
+                        <tr class="live-row border-t border-gray-100 hover:bg-gray-50" data-search="{{ att.employee.user.first_name|lower }} {{ att.employee.user.last_name|lower }} {{ att.employee.emp_id }}">
+                            <td class="py-4 px-6 font-bold">
+                                {{ att.employee.user.first_name }} {{ att.employee.user.last_name }}<br>
+                                <span class="text-xs text-gray-400 font-normal">ID: {{ att.employee.emp_id }}</span>
+                            </td>
+                            <td class="py-4 px-6 text-sm">
+                                <span class="text-blue-600">IN: {{ att.check_in|time:"h:i A"|default:"--:--" }}</span><br>
+                                <span class="text-purple-600">OUT: {{ att.check_out|time:"h:i A"|default:"--:--" }}</span>
+                            </td>
+                            <td class="py-4 px-6">
+                                {% if att.status == 'P' %}<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Present</span>
+                                {% elif att.status == 'L' %}<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">Late</span>
+                                {% elif att.status == 'H' %}<span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-bold border border-gray-300">Half Day</span>
+                                {% elif att.status == 'E' %}<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-300">Early Leave</span>
+                                {% elif att.status == 'A' %}<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200">Absent</span>
+                                {% elif att.status == 'M' %}<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-300">⚠️ Missed Swap</span>
+                                {% elif att.status == 'O' %}<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">🎉 Holiday</span>
+                                {% elif att.status == 'W' %}<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold border border-indigo-200">Week-Off</span>
+                                {% endif %}
+                                
+                                {% if att.is_hr_edited %}
+                                    <div class="mt-2 text-[10px] text-red-600 font-bold bg-red-50 border border-red-100 px-2 py-1 rounded shadow-sm w-fit inline-block">
+                                        🛠️ {{ att.employee_note }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-6 flex items-center gap-3">
+                                {% if att.selfie %}<img src="{{ att.selfie.url }}" class="w-10 h-10 rounded-full border-2 border-green-400 object-cover">{% endif %}
+                            </td>
+                            <td class="py-4 px-6 text-right">
+                                <button onclick="openEditModal('{{ att.id }}', '{{ att.status }}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-1 px-3 rounded text-sm transition border border-indigo-200">Override</button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="py-8 text-center text-gray-500">No punches recorded yet today.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- MONTHLY ATTENDANCE LOG (ALL EMPLOYEES) -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <h3 class="text-lg md:text-xl font-bold text-gray-800">Monthly Attendance Log (All Employees)</h3>
+                    <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
+                        <select name="month" onchange="this.form.submit()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm">
+                            <option value="1" {% if current_month == 1 %}selected{% endif %}>January</option>
+                            <option value="2" {% if current_month == 2 %}selected{% endif %}>February</option>
+                            <option value="3" {% if current_month == 3 %}selected{% endif %}>March</option>
+                            <option value="4" {% if current_month == 4 %}selected{% endif %}>April</option>
+                            <option value="5" {% if current_month == 5 %}selected{% endif %}>May</option>
+                            <option value="6" {% if current_month == 6 %}selected{% endif %}>June</option>
+                            <option value="7" {% if current_month == 7 %}selected{% endif %}>July</option>
+                            <option value="8" {% if current_month == 8 %}selected{% endif %}>August</option>
+                            <option value="9" {% if current_month == 9 %}selected{% endif %}>September</option>
+                            <option value="10" {% if current_month == 10 %}selected{% endif %}>October</option>
+                            <option value="11" {% if current_month == 11 %}selected{% endif %}>November</option>
+                            <option value="12" {% if current_month == 12 %}selected{% endif %}>December</option>
+                        </select>
+                    </form>
+                </div>
+                
+                <div class="max-h-64 overflow-y-auto rounded-lg">
+                    <table class="min-w-full text-sm">
+                        <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                            <tr class="border-b border-gray-200">
+                                <th class="px-4 py-3 text-left font-bold text-gray-700">Employee</th>
+                                <th class="px-4 py-3 text-left font-bold text-gray-700">Date</th>
+                                <th class="px-4 py-3 text-center font-bold text-gray-700">In Time</th>
+                                <th class="px-4 py-3 text-center font-bold text-gray-700">Out Time</th>
+                                <th class="px-4 py-3 text-center font-bold text-gray-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in attendance_logs %}
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                <td class="px-4 py-3 font-semibold text-gray-800">
+                                    {{ log.employee.user.get_full_name }}<br>
+                                    <span class="text-xs text-gray-500 font-normal">{{ log.employee.emp_id }}</span>
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-gray-800">
+                                    {{ log.date|date:"d M Y" }}
+                                    <p class="text-xs text-gray-500 font-normal">{{ log.date|date:"l" }}</p>
+                                </td>
+                                <td class="px-4 py-3 text-center text-gray-700 font-mono">
+                                    {% if log.check_in %}
+                                        <span class="bg-green-50 text-green-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">
+                                            {{ log.check_in|time:"H:i" }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-gray-400 text-xs">--:--</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-center text-gray-700 font-mono">
+                                    {% if log.check_out %}
+                                        <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">
+                                            {{ log.check_out|time:"H:i" }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-gray-400 text-xs">--:--</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    {% if log.status == 'P' %}
+                                        <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-green-100 text-green-700 border border-green-200 shadow-sm">
+                                            ✅ Present
+                                        </span>
+                                    {% elif log.status == 'A' %}
+                                        <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-red-100 text-red-700 border border-red-200 shadow-sm">
+                                            ❌ Absent
+                                        </span>
+                                    {% elif log.status == 'L' %}
+                                        <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm">
+                                            ⏰ Late
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-blue-100 text-blue-700 border border-blue-200 shadow-sm">
+                                            🏖️ Leave
+                                        </span>
+                                    {% endif %}
+                            </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500 font-medium">
+                                    📭 No attendance records for selected month.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-my-attendance" class="hidden animate-fade-in">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">My Attendance Dashboard</h2>
+            
+            <!-- PERSONAL ATTENDANCE STATS ONLY -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <div class="bg-[#22c55e] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_present_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Present</p>
+                </div>
+                <div class="bg-[#f59e0b] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_late_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Late</p>
+                </div>
+                <div class="bg-[#ef4444] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_absent_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Absent</p>
+                </div>
+                <div class="bg-[#3b82f6] text-white rounded-xl p-4 md:p-6 text-center shadow-lg">
+                    <p class="text-3xl md:text-4xl font-bold">{{ my_leave_count|default:"0" }}</p>
+                    <p class="text-xs md:text-sm uppercase tracking-wider mt-2 font-semibold">Leaves</p>
+                </div>
+            </div>
+
+            <!-- PROFILE AND ATTENDANCE TABLE GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                
+                <!-- EMPLOYEE PROFILE CARD -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-fit">
+                    {% if user.employeeprofile.master_photo %}
+                        <img src="{{ user.employeeprofile.master_photo.url }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200 mb-4 shadow-lg">
+                    {% else %}
+                        <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4 shadow-lg">
+                            <span class="text-3xl text-gray-500">👤</span>
+                        </div>
+                    {% endif %}
+                    
+                    <h3 class="text-xl font-bold text-gray-800 mb-1">{{ user.get_full_name|default:user.username }}</h3>
+                    <p class="text-sm text-gray-500 mb-2">Employee ID: {{ user.employeeprofile.emp_id }}</p>
+                    
+                    {% if user.employeeprofile.department %}
+                        <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold border border-blue-200">
+                            {{ user.employeeprofile.department }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- PERSONAL MONTHLY ATTENDANCE TABLE -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 lg:col-span-2">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <h3 class="text-lg md:text-xl font-bold text-gray-800">My Monthly Attendance</h3>
+                        <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
+                            <select name="month" onchange="this.form.submit()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm">
+                                <option value="1" {% if current_month == 1 %}selected{% endif %}>January</option>
+                                <option value="2" {% if current_month == 2 %}selected{% endif %}>February</option>
+                                <option value="3" {% if current_month == 3 %}selected{% endif %}>March</option>
+                                <option value="4" {% if current_month == 4 %}selected{% endif %}>April</option>
+                                <option value="5" {% if current_month == 5 %}selected{% endif %}>May</option>
+                                <option value="6" {% if current_month == 6 %}selected{% endif %}>June</option>
+                                <option value="7" {% if current_month == 7 %}selected{% endif %}>July</option>
+                                <option value="8" {% if current_month == 8 %}selected{% endif %}>August</option>
+                                <option value="9" {% if current_month == 9 %}selected{% endif %}>September</option>
+                                <option value="10" {% if current_month == 10 %}selected{% endif %}>October</option>
+                                <option value="11" {% if current_month == 11 %}selected{% endif %}>November</option>
+                                <option value="12" {% if current_month == 12 %}selected{% endif %}>December</option>
+                            </select>
+                        </form>
+                    </div>
+                    
+                    <div class="max-h-64 overflow-y-auto rounded-lg">
+                        <table class="min-w-full text-sm">
+                            <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                                <tr class="border-b border-gray-200">
+                                    <th class="px-4 py-3 text-left font-bold text-gray-700">Date</th>
+                                    <th class="px-4 py-3 text-center font-bold text-gray-700">In Time</th>
+                                    <th class="px-4 py-3 text-center font-bold text-gray-700">Out Time</th>
+                                    <th class="px-4 py-3 text-center font-bold text-gray-700">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in my_attendance %}
+                                {% if log.date.month == current_month and log.date.year == current_year %}
+                                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                    <td class="px-4 py-3 font-semibold text-gray-800">
+                                        {{ log.date|date:"d M Y" }}
+                                        <p class="text-xs text-gray-500 font-normal">{{ log.date|date:"l" }}</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-gray-700 font-mono">
+                                        {% if log.check_in %}
+                                            <span class="bg-green-50 text-green-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">
+                                                {{ log.check_in|time:"H:i" }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-gray-400 text-xs">--:--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-gray-700 font-mono">
+                                        {% if log.check_out %}
+                                            <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">
+                                                {{ log.check_out|time:"H:i" }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-gray-400 text-xs">--:--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        {% if log.status == 'P' %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-green-100 text-green-700 border border-green-200 shadow-sm">
+                                                ✅ Present
+                                            </span>
+                                        {% elif log.status == 'A' %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-red-100 text-red-700 border border-red-200 shadow-sm">
+                                                ❌ Absent
+                                            </span>
+                                        {% elif log.status == 'L' %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm">
+                                                ⏰ Late
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs md:text-sm bg-blue-100 text-blue-700 border border-blue-200 shadow-sm">
+                                                🏖️ Leave
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 font-medium">
+                                        📭 No attendance records for selected month.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COMPANY HOLIDAYS SECTION (FULL WIDTH) -->
+            <div class="w-full">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">🎉 Upcoming Company Holidays</h3>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <ul class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                        {% for holiday in holidays %}
+                        <li class="p-4 hover:bg-gray-50 transition flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg p-2 text-center min-w-[65px] shadow-sm">
+                                    <span class="block text-[10px] font-black uppercase tracking-widest">{{ holiday.date|date:"M" }}</span>
+                                    <span class="block text-2xl font-black">{{ holiday.date|date:"d" }}</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-gray-800">{{ holiday.name }}</h4>
+                                    <p class="text-sm text-gray-500 font-medium">{{ holiday.date|date:"l" }}</p>
+                                </div>
+                            </div>
+                            <span class="text-2xl text-gray-300">🎊</span>
+                        </li>
+                        {% empty %}
+                        <li class="p-8 text-center text-gray-500 font-medium">No upcoming holidays scheduled at the moment.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-my-leaves" class="hidden animate-fade-in">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Apply for Leave</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-8 mb-8 max-w-2xl">
+                <form method="POST" action="{% url 'apply_leave' %}">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Start Date</label>
+                            <input type="date" id="my_leave_start_date" name="start_date" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">End Date</label>
+                            <input type="date" id="my_leave_end_date" name="end_date" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <input type="text" id="my_leave_subject" name="subject" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Subject (e.g., Medical Leave)" required>
+                    </div>
+                    <div class="mb-6">
+                        <textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter reason..." required></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-[#1e293b] hover:bg-gray-800 text-white font-bold py-3 rounded-lg transition shadow-lg">Submit Leave Request</button>
+                </form>
+            </div>
+
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4">My Leave Applications</h2>
+            <div class="space-y-4 max-w-4xl">
+                {% for leave in my_leave_history %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-3">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <p class="font-bold text-gray-800">{{ leave.start_date }} to {{ leave.end_date }}</p>
+                            {% if leave.status == 'Approved' %}
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest {% if leave.is_paid %} bg-green-100 text-green-700 {% else %} bg-orange-100 text-orange-700 {% endif %}">
+                                {% if leave.is_paid %} PAID LEAVE {% else %} UNPAID LEAVE {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-500 text-sm mt-1">{{ leave.subject }}</p>
+                    </div>
+                    <div>
+                        {% if leave.status == 'Approved' %}
+                        <span class="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-xs font-bold border border-blue-200">Approved</span>
+                        {% elif leave.status == 'Rejected' %}
+                        <span class="bg-red-100 text-red-600 px-4 py-1 rounded-full text-xs font-bold border border-red-200">Rejected</span>
+                        {% else %}
+                        <span class="bg-yellow-100 text-yellow-600 px-4 py-1 rounded-full text-xs font-bold border border-yellow-200">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-white rounded-xl p-6 text-center text-gray-500 border border-gray-100">No leave applications found.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="tab-leaves" class="hidden animate-fade-in">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Pending Leave Requests</h2>
+            <div class="space-y-4 max-w-5xl" id="leave-list-container">
+                {% for leave in pending_leaves %}
+                <div id="leave-row-{{ leave.id }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4 transition-all duration-300">
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">{{ leave.employee.user.first_name }} <span class="text-sm font-normal text-gray-500 ml-1">(ID: {{ leave.employee.emp_id }})</span></h4>
+                        <p class="font-semibold text-blue-600 mt-1">{{ leave.start_date }} to {{ leave.end_date }}</p>
+                        <p class="text-gray-600 mt-2 text-sm">{{ leave.subject }} - {{ leave.description }}</p>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="approveLeave('{{ leave.id }}', 'approve_paid')" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-sm font-bold border border-green-300 transition">💰 Approve (Paid)</button>
+                        <button onclick="approveLeave('{{ leave.id }}', 'approve_unpaid')" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1 rounded text-sm font-bold border border-yellow-300 transition">🛑 Approve (Unpaid)</button>
+                        <button onclick="approveLeave('{{ leave.id }}', 'reject')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm font-bold border border-red-300 transition">❌ Reject</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-white rounded-xl p-8 text-center text-gray-500 shadow-sm border border-gray-100">🎉 All caught up! No pending leave requests right now.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+       <div id="tab-staff" class="hidden animate-fade-in">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Onboard New Employee</h2>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-8 max-w-2xl mb-10">
+        <form id="addEmployeeForm" onsubmit="submitEmployeeAJAX(event)">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input type="text" name="first_name" placeholder="First Name" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" name="last_name" placeholder="Last Name" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" name="emp_id" placeholder="Emp ID (e.g., 102)" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" name="department" placeholder="Department" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" name="username" placeholder="Portal Username" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                <input type="password" name="password" placeholder="Portal Password" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                <div class="mb-4">
+    <label class="block text-gray-700 text-sm font-bold mb-2">Assign Role</label>
+    <select name="is_hod" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        <option value="False">Standard Employee</option>
+        <option value="True">Department HOD</option>
+    </select>
+</div>
+            </div>
+            <button type="submit" id="onboardBtn" class="w-full bg-[#1e293b] text-white font-bold py-3 rounded-lg shadow-lg">+ Create Account</button>
+        </form>
+    </div>
+
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Manage Staff</h2>
+    
+    <div class="flex items-center gap-3">
+        <select id="departmentFilter" onchange="filterStaffTable()" class="border border-gray-300 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer">
+            <option value="all">All Departments</option>
+            <option value="IT">IT</option>
+            <option value="Accounts">Accounts</option>
+            <option value="Sales">Sales</option>
+        </select>
+
+        <button type="button" onclick="openDocumentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
+            📂 Upload Employee Docs
+        </button>
+    </div>
+</div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto max-w-5xl">
+        <table class="min-w-full text-left whitespace-nowrap">
+            <thead class="bg-gray-50 text-gray-600 font-semibold text-sm">
+                <tr>
+                    <th class="py-4 px-6">Emp ID</th>
+                    <th class="py-4 px-6">Name</th>
+                    <th class="py-4 px-6">Department</th>
+                    <th class="py-4 px-6 text-center">Master Photo</th> <th class="py-4 px-6 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700" id="staffTableBody">
+                {% for emp in employees %}
+                <tr class="staff-row border-t border-gray-100 hover:bg-gray-50" data-dept="{{ emp.department }}">
+                    <td class="py-4 px-6 font-bold">{{ emp.emp_id }}</td>
+                    <td class="py-4 px-6">{{ emp.user.first_name }} {{ emp.user.last_name }}</td>
+                    <td class="py-4 px-6">{{ emp.department }}</td>
+                    
+                    <td class="py-4 px-6 text-center">
+                        {% if emp.master_photo %}
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-md border border-green-200 font-bold flex items-center gap-1">
+                                    ✅ Uploaded
+                                </span>
+                                <a href="{{ emp.master_photo.url }}" target="_blank" class="text-blue-600 hover:bg-blue-50 text-xs font-bold px-2 py-1 rounded border border-blue-200 transition">
+                                    👁️ View
+                                </a>
+                                <button type="button" onclick="openPhotoModal(event, '{{ emp.id }}', '{{ emp.user.first_name }}')" class="text-indigo-600 hover:bg-indigo-50 text-xs font-bold px-2 py-1 rounded border border-indigo-200 transition">
+                                    🔄 Change
+                                </button>
+                                <form action="{% url 'hr_update_master_photo' emp.id %}" method="POST" class="inline m-0" onsubmit="return confirm('Are you sure you want to delete this photo?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                           <button type="button" onclick="deleteMasterPhotoSilent(event, '/dashboard/hr/delete-doc/{{ emp.id }}/master_photo/')" class="text-red-500 hover:text-red-700 font-bold">
+    🗑️ Delete Photo
+</button>
+                                </form>
+                            </div>
+                        {% else %}
+                           <button type="button" onclick="event.preventDefault(); openPhotoModal('{{ emp.id }}', '{{ emp.user.first_name }}');" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-md font-bold transition shadow-sm inline-flex items-center gap-1">
+    📸 Upload Master Photo
+</button>
+                        {% endif %}
+                    </td>
+
+                    <td class="py-4 px-6 text-right">
+                        <form method="POST" action="{% url 'remove_employee' emp.emp_id %}" onsubmit="return confirm('⚠️ Deactivate {{ emp.user.first_name }}?');" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition">
+                                🗑️ Deactivate
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+       <div id="tab-resignations" class="hidden animate-fade-in">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Offboarding & Resignations</h2>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+        <table class="min-w-full text-left whitespace-nowrap">
+            <thead class="bg-gray-50 text-gray-600 font-semibold text-sm">
+                <tr>
+                    <th class="py-4 px-6">Employee</th>
+                    <th class="py-4 px-6">Application Details</th>
+                    <th class="py-4 px-6">Current Status</th>
+                    <th class="py-4 px-6 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for req in all_resignations %}
+                <tr class="border-t border-gray-100 hover:bg-gray-50" id="resign-row-{{ req.id }}">
+                    <td class="py-4 px-6 font-bold">
+                        {{ req.employee.user.first_name }} {{ req.employee.user.last_name }}<br>
+                        <span class="text-xs text-gray-400 font-normal">ID: {{ req.employee.emp_id }} | {{ req.employee.department|default:"Staff" }}</span>
+                    </td>
+                    <td class="py-4 px-6">
+                        <span class="font-bold text-sm text-gray-800">{{ req.subject }}</span><br>
+                        <span class="text-xs text-gray-500">Applied: {{ req.applied_date|date:"d M Y" }}</span>
+                        <p class="text-xs text-gray-500 mt-1 max-w-xs truncate" title="{{ req.description }}">{{ req.description }}</p>
+                    </td>
+                    <td class="py-4 px-6">
+                        {% if req.hr_status == 'PENDING_HR' %}
+                            <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">Pending HR</span>
+                        {% elif req.hr_status == 'REJECTED_HR' %}
+                            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200">Rejected</span>
+                        {% elif req.hr_status == 'APPROVED_HR' and req.admin_status == 'APPROVED_HR' %}
+                            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">Pending Admin</span>
+                        {% elif req.admin_status == 'APPROVED_ADMIN' %}
+                            <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Notice Period Active</span><br>
+                            <span class="text-[10px] text-gray-500 font-bold">Ends: {{ req.notice_period_end_date|date:"d M Y" }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6 text-right">
+                        {% if req.hr_status == 'PENDING_HR' %}
+                            <button onclick="processResignation('{{ req.id }}', 'approve')" class="bg-green-100 hover:bg-green-200 text-green-700 font-bold py-1 px-3 rounded text-sm transition mr-2 border border-green-200">Approve</button>
+                            <button onclick="openRejectResignModal('{{ req.id }}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1 px-3 rounded text-sm transition border border-red-200">Reject</button>
+                        {% else %}
+                            <span class="text-gray-400 text-sm font-bold block mt-2">Actioned</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="py-16 text-center">
+                        <span class="text-5xl">🎉</span>
+                        <p class="text-gray-600 font-bold mt-4 text-lg">No resignations right now!</p>
+                        <p class="text-gray-400 text-sm">Everyone loves working here.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+        <div id="tab-export" class="hidden animate-fade-in">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Custom Excel Export</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8 max-w-xl">
+                <form method="GET" action="{% url 'export_attendance' %}" class="space-y-5">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-semibold text-gray-600 mb-1">Start Date</label><input type="date" name="start_date" class="w-full px-4 py-2 border rounded-lg"></div>
+                        <div><label class="block text-sm font-semibold text-gray-600 mb-1">End Date</label><input type="date" name="end_date" class="w-full px-4 py-2 border rounded-lg"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-600 mb-1">Department Filter</label>
+                        <input type="text" name="department" placeholder="e.g. IT, HR" class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                    <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg shadow-lg">📥 Generate & Download Report</button>
+                </form>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6 max-w-2xl">
+    <h2 class="text-xl font-bold text-[#1e293b] mb-4">Background Verification (BGV) Export</h2>
+    
+    <form action="{% url 'export_bgv_pdf' %}" method="GET" class="flex flex-col md:flex-row items-end gap-4">
+        <div class="w-full md:w-2/3">
+            <label class="block text-sm text-gray-600 mb-2">Department Filter</label>
+            <select name="department" class="w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-600 bg-gray-50 outline-none">
+                <option value="All">🏢 All Departments</option>
+                {% for emp in all_employees %}
+                    {% ifchanged emp.department %}
+                        <option value="{{ emp.department }}">{{ emp.department }}</option>
+                    {% endifchanged %}
+                {% endfor %}
+            </select>
+        </div>
+        
+        <button type="submit" class="w-full md:w-1/3 bg-[#ef4444] hover:bg-red-600 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
+            📄 Export PDF
+        </button>
+    </form>
+</div>
+            </div>
+        </div>
+    </main>
+
+    <div id="editModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Override Attendance</h3>
+            <form method="POST" action="{% url 'hr_edit_attendance' %}">
+                {% csrf_token %}
+                <input type="hidden" name="attendance_id" id="modal_attendance_id">
+                <label class="block text-sm font-semibold mt-4">New Status</label>
+                <select name="new_status" id="modal_status" class="w-full px-4 py-3 border rounded-lg mt-1"><option value="P">Present</option><option value="H">Half Day</option><option value="L">Late</option><option value="A">Absent</option></select>
+                <label class="block text-sm font-semibold mt-4">Reason (Req)</label>
+                <input type="text" name="edit_reason" class="w-full px-4 py-3 border rounded-lg mt-1" required>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeEditModal()" class="px-5 py-2 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg font-bold">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="manualEntryModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Manual Entry</h3>
+            <form method="POST" action="{% url 'hr_manual_entry' %}">
+                {% csrf_token %}
+                <label class="block text-sm font-semibold mt-4">Employee</label>
+                <select name="employee_id" class="w-full px-4 py-3 border rounded-lg mt-1" required>
+                    {% for emp in employees %}<option value="{{ emp.emp_id }}">{{ emp.user.first_name }} ({{ emp.emp_id }})</option>{% endfor %}
+                </select>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div><label class="text-sm font-semibold">In Time</label><input type="time" name="in_time" class="w-full px-4 py-2 border rounded-lg"></div>
+                    <div><label class="text-sm font-semibold">Out Time</label><input type="time" name="out_time" class="w-full px-4 py-2 border rounded-lg"></div>
+                </div>
+                <label class="block text-sm font-semibold mt-4">Reason</label>
+                <input type="text" name="reason" class="w-full px-4 py-2 border rounded-lg mt-1" required>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="document.getElementById('manualEntryModal').classList.add('hidden')" class="px-5 py-2 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-[#1e293b] text-white rounded-lg font-bold">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="missedSwapModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Request Missed Swap</h3>
+           <form id="uploadDocsForm" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+                <label class="block text-sm font-semibold mt-4">Date</label>
+                <input type="date" name="date" class="w-full px-4 py-3 border rounded-lg mt-1" required>
+                <label class="block text-sm font-semibold mt-4">Reason (Req)</label>
+                <input type="text" name="reason" class="w-full px-4 py-3 border rounded-lg mt-1" required>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="document.getElementById('missedSwapModal').classList.add('hidden')" class="px-5 py-2 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg font-bold">Submit</button>
+                </div>
+                <div id="toast-notification" class="fixed top-5 right-5 transform transition-all duration-300 translate-x-full opacity-0 z-50 flex items-center w-full max-w-xs p-4 space-x-3 text-white rounded-lg shadow-2xl">
+            <div id="toast-icon" class="text-xl">✅</div>
+            <div id="toast-message" class="text-sm font-bold">Message here.</div>
+        </div>
+            </form>
+        </div>
+    </div>
+<div id="documentModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[100] backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 my-8 flex flex-col">
+        <div class="bg-blue-600 border-b border-blue-700 px-6 py-4 flex justify-between items-center rounded-t-xl">
+            <h3 class="text-xl font-extrabold text-white m-0">📂 Employee Document Vault</h3>
+            <button type="button" onclick="closeDocumentModal()" class="text-blue-200 hover:text-white text-3xl leading-none font-bold transition">&times;</button>
+        </div>
+        
+        <form id="documentUploadForm" method="POST" enctype="multipart/form-data" action="" class="p-6 m-0 flex flex-col">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_documents">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div>
+                    <label class="block text-sm font-extrabold text-gray-800 mb-2">1. Select Department</label>
+                    <select id="vaultDeptFilter" onchange="filterVaultEmployees()" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-blue-500 outline-none">
+                        <option value="all">All Departments</option>
+                        <option value="IT">IT</option>
+                        <option value="Accounts">Accounts</option>
+                        <option value="Sales">Sales</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-extrabold text-gray-800 mb-2">2. Select Employee <span class="text-red-500">*</span></label>
+                    <select name="employee_id" id="vaultEmployeeSelect" onchange="fetchVaultDocs()" required class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-blue-500 outline-none">
+                        <option value="">-- Choose an active employee --</option>
+                        {% for emp in all_employees %}
+                            <option value="{{ emp.id }}" data-dept="{{ emp.department }}">{{ emp.user.first_name }} {{ emp.user.last_name }} (ID: {{ emp.emp_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Select Files to Upload</h4>
+            
+           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+    <div class="flex flex-col" id="resume_cv_container"><label class="text-xs font-bold text-gray-700 mb-1">📄 Resume / CV</label><input type="file" name="resume_cv" accept=".pdf,.doc,.docx" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    <div class="flex flex-col" id="photo_container"><label class="text-xs font-bold text-gray-700 mb-1">📸 Formal Photo</label><input type="file" name="photo" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    <div class="flex flex-col" id="pan_card_doc_container"><label class="text-xs font-bold text-gray-700 mb-1">💳 PAN Card</label><input type="file" name="pan_card_doc" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    
+    <div class="flex flex-col" id="tenth_mark_container"><label class="text-xs font-bold text-gray-700 mb-1">🎓 10th Marksheet</label><input type="file" name="tenth_mark" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    <div class="flex flex-col" id="twelfth_mark_container"><label class="text-xs font-bold text-gray-700 mb-1">🎓 12th Marksheet</label><input type="file" name="twelfth_mark" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    <div class="flex flex-col" id="graduation_container"><label class="text-xs font-bold text-gray-700 mb-1">🎓 Graduation</label><input type="file" name="graduation" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    
+    <div class="flex flex-col" id="experience_letter_container"><label class="text-xs font-bold text-gray-700 mb-1">💼 Experience</label><input type="file" name="experience_letter" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    <div class="flex flex-col" id="aadhar_card_container"><label class="text-xs font-bold text-gray-700 mb-1">🆔 Aadhaar</label><input type="file" name="aadhar_card" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+    <div class="flex flex-col" id="passbook_container"><label class="text-xs font-bold text-gray-700 mb-1">🏦 Bank Passbook</label><input type="file" name="passbook" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1"></div>
+</div>
+            <div class="flex justify-end gap-3 w-full border-t border-gray-200 pt-5 mt-auto">
+                <button type="button" onclick="closeDocumentModal()" class="px-5 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button type="submit" id="saveDocsBtn" class="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">💾 Upload Selected Files</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="photoModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[100] backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden flex flex-col">
+        <div class="bg-gray-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-xl font-extrabold text-gray-800 m-0">📸 Upload Photo: <span id="photoEmpName" class="text-indigo-600"></span></h3>
+            <button type="button" onclick="closePhotoModal()" class="text-gray-400 hover:text-red-500 text-3xl leading-none font-bold">&times;</button>
+        </div>
+        
+        <form id="photoUploadForm" onsubmit="submitMasterPhoto(event)" method="POST" enctype="multipart/form-data" action="" class="p-6 m-0 flex flex-col">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload">
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-3">Select Image File</label>
+                <input type="file" name="master_photo" accept="image/*" required class="block w-full text-sm text-gray-600 border border-gray-300 rounded-lg cursor-pointer bg-white p-2">
+            </div>
+            <div class="flex justify-end gap-3 w-full">
+                <button type="button" onclick="closePhotoModal()" class="px-5 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md transition">💾 Save Photo</button>
+            </div>
+        </form>
+    </div>
+</div>
+    <script>
+    // ==========================================
+    // 1. UTILITY & UI FUNCTIONS
+    // ==========================================
+    function getCSRFToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue) {
+            const domToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (domToken) cookieValue = domToken.value;
+        }
+        return cookieValue;
+    }
+
+    function showToast(msg, colorClass) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `p-4 rounded-lg shadow-2xl font-bold text-white mb-2 toast-fade ${colorClass}`;
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3500);
+    }
+
+    function showCustomToast(message, type) {
+        const toast = document.getElementById('toast-notification');
+        const icon = document.getElementById('toast-icon');
+        const msgEl = document.getElementById('toast-message');
+        if (!toast) return;
+
+        msgEl.innerText = message;
+        if (type === 'success') {
+            toast.className = "fixed top-5 right-5 transform transition-all duration-300 z-50 flex items-center w-full max-w-xs p-4 space-x-3 text-white bg-green-600 rounded-lg shadow-2xl";
+            icon.innerText = "✅";
+        } else {
+            toast.className = "fixed top-5 right-5 transform transition-all duration-300 z-50 flex items-center w-full max-w-xs p-4 space-x-3 text-white bg-red-600 rounded-lg shadow-2xl";
+            icon.innerText = "🚫";
+        }
+        toast.classList.remove('translate-x-full', 'opacity-0');
+        setTimeout(() => toast.classList.add('translate-x-full', 'opacity-0'), 3000);
+    }
+
+    setTimeout(() => {
+        const oldMsgs = document.getElementById('old-messages');
+        if (oldMsgs) {
+            oldMsgs.style.transition = 'opacity 0.5s';
+            oldMsgs.style.opacity = '0';
+            setTimeout(() => oldMsgs.remove(), 500);
+        }
+    }, 3000);
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        document.getElementById('sidebarOverlay').classList.toggle('hidden');
+    }
+
+    function switchTab(tabName) {
+        const tabs = ['live', 'my-attendance', 'leaves', 'my-leaves', 'staff', 'export'];
+        tabs.forEach(t => {
+            document.getElementById('tab-' + t).classList.add('hidden');
+            const btn = document.getElementById('btn-' + t);
+            if(btn) btn.className = "w-full flex items-center p-3 text-left rounded-lg hover:bg-white/5 text-gray-300 transition";
+            const resTab = document.getElementById('tab-resignations');
+            if(resTab) resTab.classList.add('hidden');
+        });
+        document.getElementById('tab-' + tabName).classList.remove('hidden');
+        const activeBtn = document.getElementById('btn-' + tabName);
+        if(activeBtn) activeBtn.className = "w-full flex items-center p-3 text-left rounded-lg bg-white/10 text-white font-medium transition";
+        if (window.innerWidth < 768) toggleSidebar();
+        
+        if (tabName === 'my-attendance') { 
+            generateCalendar(currentDate); 
+        }
+    }
+
+    // ==========================================
+    // 2. MASTER PHOTO UPLOAD (Crash-Proof)
+    // ==========================================
+    function openPhotoModal(empId, empName) {
+        document.getElementById('photoEmpName').innerText = empName;
+        document.getElementById('photoUploadForm').action = `/hr/update-photo/${empId}/`; 
+        const modal = document.getElementById('photoModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closePhotoModal() {
+        const modal = document.getElementById('photoModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+function submitMasterPhoto(event) {
+        event.preventDefault(); // 🛑 Stops the page reload
+        const form = document.getElementById('photoUploadForm');
+        const formData = new FormData(form);
+        const targetUrl = form.getAttribute('action');
+        
+        const csrfToken = getCSRFToken();
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerText;
+        submitBtn.innerText = '⏳ Saving...';
+        submitBtn.disabled = true;
+
+        fetch(targetUrl, {
+            method: 'POST',
+            body: formData,
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken 
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" || data.success) {
+                alert("✅ Photo uploaded successfully!");
+                closePhotoModal();
+                // 🛑 I REMOVED window.location.reload() HERE! No more refreshing!
+            } else {
+                alert("⚠️ " + (data.message || "Failed to upload."));
+            }
+            // Reset the button
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("❌ Server Error.");
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
+        });
+    }
+
+    // ==========================================
+    // 3. DOCUMENT VAULT MODAL & UPLOAD
+    // ==========================================
+    function openDocumentModal() {
+        const modal = document.getElementById('documentModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeDocumentModal() {
+        const modal = document.getElementById('documentModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('documentUploadForm').reset();
+    }
+
+    function filterVaultEmployees() {
+        const selectedDept = document.getElementById('vaultDeptFilter').value.toLowerCase().trim();
+        const employeeSelect = document.getElementById('vaultEmployeeSelect');
+        const options = employeeSelect.querySelectorAll('option[data-dept]');
+
+        employeeSelect.value = ""; 
+        options.forEach(option => {
+            const empDept = (option.getAttribute('data-dept') || '').toLowerCase().trim();
+            if (selectedDept === 'all' || empDept === selectedDept) {
+                option.style.display = ''; 
+            } else {
+                option.style.display = 'none'; 
+            }
+        });
+    }
+    // 🟢 FETCH DOCUMENTS WHEN EMPLOYEE IS SELECTED
+    function fetchVaultDocs() {
+        const empId = document.getElementById('vaultEmployeeSelect').value;
+        if (!empId) return; 
+
+        // Matches the url.py route perfectly
+        fetch(`/dashboard/hr/get-docs/${empId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Exact names matching models.py, HTML IDs, and views.py
+                const docFields = ['resume_cv', 'photo', 'pan_card_doc', 'tenth_mark', 'twelfth_mark', 'graduation', 'experience_letter', 'aadhar_card', 'passbook'];
+                
+                const titles = {
+                    'resume_cv': '📄 Resume / CV', 'photo': '📸 Formal Photo', 'pan_card': '💳 PAN Card',
+                    'tenth_mark': '🎓 10th Marksheet', 'twelfth_mark': '🎓 12th Marksheet', 'graduation': '🎓 Graduation',
+                    'experience_letter': '💼 Experience', 'aadhaar_card': '🆔 Aadhaar', 'passbook': '🏦 Bank Passbook'
+                };
+
+                docFields.forEach(docType => {
+                    const container = document.getElementById(`${docType}_container`);
+                    if (!container) return;
+
+                    const fileUrl = data.docs[docType];
+
+                    if (fileUrl) {
+                        // ✅ FILE EXISTS
+                        container.innerHTML = `
+                            <label class="text-xs font-bold text-gray-700 mb-1">${titles[docType]}</label>
+                            <div class="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg text-xs mt-1">
+                                <span class="text-green-700 font-bold">✅ Uploaded</span>
+                                <div class="flex gap-2">
+                                    <a href="${fileUrl}" target="_blank" class="text-blue-600 hover:underline font-bold">👁️ View</a>
+                                    <button type="button" onclick="deleteVaultDoc(${empId}, '${docType}')" class="text-red-500 hover:underline font-bold">🗑️ Del</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // ❌ NO FILE
+                        container.innerHTML = `
+                            <label class="text-xs font-bold text-gray-700 mb-1">${titles[docType]}</label>
+                            <input type="file" name="${docType}" accept=".pdf,.doc,.docx,image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer border border-gray-200 rounded-lg bg-white mt-1">
+                        `;
+                    }
+                });
+            }
+        });
+    }
+// 🟢 DELETE DOCUMENT FROM VAULT
+    function deleteVaultDoc(empId, docType) {
+        if (!confirm("Are you sure you want to delete this document?")) return;
+        const csrfToken = getCSRFToken();
+
+        // Matches the urls.py route perfectly
+        fetch(`/dashboard/hr/delete-doc/${empId}/${docType}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken, 
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                fetchVaultDocs(); // 🔄 Instantly refresh the grid!
+            } else {
+                alert("Error: " + data.message);
+            }
+        });
+    }
+    const docUploadForm = document.getElementById('documentUploadForm');
+    if(docUploadForm) {
+        docUploadForm.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+            
+            const formData = new FormData(this);
+            const submitBtn = document.getElementById('saveDocsBtn');
+            const originalBtnText = submitBtn.innerHTML;
+
+            submitBtn.innerHTML = '⏳ Uploading...';
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            fetch(window.location.href, { 
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("✅ " + data.message); 
+                    closeDocumentModal(); 
+                } else {
+                    alert("⚠️ " + data.message); 
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("❌ An error occurred while uploading. Check your connection.");
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            });
+        });
+    }
+
+    // ==========================================
+    // 4. MANAGE STAFF & FILTERS
+    // ==========================================
+    function filterStaffTable() {
+        const selectedDept = document.getElementById('departmentFilter').value.trim().toLowerCase();
+        const rows = document.querySelectorAll('.staff-row');
+
+        rows.forEach(row => {
+            const rowDept = (row.getAttribute('data-dept') || '').trim().toLowerCase();
+            if (selectedDept === 'all' || rowDept === selectedDept) {
+                row.style.display = ''; 
+            } else {
+                row.style.display = 'none'; 
+            }
+        });
+    }
+
+    function filterLiveTable() {
+        let input = document.getElementById("liveSearch").value.toLowerCase();
+        let rows = document.getElementsByClassName("live-row");
+        for (let i = 0; i < rows.length; i++) {
+            let text = rows[i].getAttribute("data-search");
+            rows[i].style.display = text.includes(input) ? "" : "none";
+        }
+    }
+
+    function submitEmployeeAJAX(event) {
+        event.preventDefault();
+        const form = document.getElementById('addEmployeeForm');
+        const btn = document.getElementById('onboardBtn');
+        const formData = new FormData(form);
+
+        btn.innerText = "⏳ Processing...";
+        btn.disabled = true;
+
+        fetch("{% url 'add_employee' %}", {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, "bg-green-500");
+                form.reset();
+                setTimeout(() => window.location.reload(), 2000); 
+            } else {
+                showToast("❌ " + data.message, "bg-red-500");
+            }
+        })
+        .catch(() => showToast("❌ Server Error", "bg-red-500"))
+        .finally(() => {
+            btn.innerText = "+ Create Account";
+            btn.disabled = false;
+        });
+    }
+
+    // ==========================================
+    // 5. LEAVES & RESIGNATIONS
+    // ==========================================
+    function approveLeave(leaveId, action) {
+        const csrfToken = getCSRFToken();
+        const row = document.getElementById(`leave-row-${leaveId}`);
+        
+        fetch(`/dashboard/hr/update-leave/${leaveId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: `action=${action}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, action === 'reject' ? "bg-red-500" : "bg-green-500");
+                row.style.opacity = '0';
+                setTimeout(() => row.remove(), 300);
+            }
+        });
+    }
+
+    function openLeaveForm(dateStr) {
+        switchTab('my-leaves');
+        document.getElementById('my_leave_start_date').value = dateStr;
+        document.getElementById('my_leave_end_date').value = dateStr;
+        document.getElementById('my_leave_subject').focus();
+    }
+
+    function openRejectResignModal(reqId) {
+        document.getElementById('reject_resign_id').value = reqId;
+        document.getElementById('reject_resign_reason').value = "";
+        document.getElementById('rejectResignModal').classList.remove('hidden');
+    }
+
+    function closeRejectResignModal() {
+        document.getElementById('rejectResignModal').classList.add('hidden');
+    }
+
+    function submitRejectResign(event) {
+        event.preventDefault();
+        const reqId = document.getElementById('reject_resign_id').value;
+        const reason = document.getElementById('reject_resign_reason').value;
+        closeRejectResignModal();
+        processResignation(reqId, 'reject', reason);
+    }
+
+    function processResignation(reqId, action, reason = "") {
+        const csrfToken = document.querySelector('#rejectResignForm [name=csrfmiddlewaretoken]').value;
+        let bodyData = `action=${action}`;
+        if (reason) bodyData += `&rejection_reason=${encodeURIComponent(reason)}`;
+
+        fetch(`/dashboard/hr/process-resignation/${reqId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: bodyData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showCustomToast(data.message, action === 'approve' ? 'success' : 'error');
+                setTimeout(() => window.location.reload(), 1500); 
+            } else {
+                showCustomToast(data.message, 'error');
+            }
+        })
+        .catch(error => showCustomToast("Server error processing request.", 'error'));
+    }
+
+    // ==========================================
+    // 6. CALENDAR & ATTENDANCE AI CAMERA
+    // ==========================================
+    function openEditModal(id, status) {
+        document.getElementById('modal_attendance_id').value = id;
+        document.getElementById('modal_status').value = status;
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+    function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+    let currentDate = new Date();
+    let rawCalData = '{{ calendar_data|escapejs }}';
+    let attendanceData = rawCalData ? JSON.parse(rawCalData) : {};
+
+    function generateCalendar(date) {
+        const grid = document.getElementById("calendar-grid");
+        const monthLabel = document.getElementById("month-label");
+        if (!grid) return;
+
+        grid.innerHTML = "";
+        const year = date.getFullYear(), month = date.getMonth();
+        const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        monthLabel.innerText = monthNames[month] + " " + year;
+        for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="p-2 md:p-4 rounded-lg bg-gray-50 text-gray-400"></div>`;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            let fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            let status = attendanceData[fullDate];
+            let colorClass = "bg-gray-50 text-gray-600";
+            
+            if (status === 'P') colorClass = "bg-green-100 text-green-700 font-bold border border-green-200 shadow-sm";
+            else if (status === 'L') colorClass = "bg-yellow-100 text-yellow-700 font-bold border border-yellow-200 shadow-sm";
+            else if (status === 'A') colorClass = "bg-red-100 text-red-700 font-bold border border-red-200 shadow-sm";
+            else if (status === 'Leave') colorClass = "bg-blue-100 text-blue-700 font-bold border border-blue-200 shadow-sm";
+            else if (status === 'H') colorClass = "bg-gray-200 text-gray-800 font-bold border border-gray-300 shadow-sm";
+            else if (status === 'E') colorClass = "bg-orange-100 text-orange-700 font-bold border border-orange-200 shadow-sm";
+            else if (new Date(year, month, day).getDay() === 0) colorClass = "bg-gray-50 text-red-400";
+
+            grid.innerHTML += `<div onclick="openLeaveForm('${fullDate}')" class="p-2 md:p-4 rounded-lg flex items-center justify-center cursor-pointer hover:scale-105 transition transform ${colorClass}">${day}</div>`;
+        }
+    }
+    function changeMonth(offset) { currentDate.setMonth(currentDate.getMonth() + offset); generateCalendar(currentDate); }
+
+// 🟢 INVISIBLE AJAX DELETE FUNCTION
+    function deleteMasterPhotoSilent(event, deleteUrl) {
+        event.preventDefault(); // 🛑 Stops the white page!
+        
+        if (!confirm("Are you sure you want to delete this photo?")) return;
+
+        const csrfToken = getCSRFToken();
+
+        fetch(deleteUrl, {
+            method: 'POST', // or GET depending on how your urls.py is set up
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" || data.success) {
+                alert("🗑️ Photo deleted safely!");
+                // You can optionally write code here to hide the photo from the screen!
+            } else {
+                alert("⚠️ " + (data.message || "Could not delete."));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("❌ Server Error.");
+        });
+    }
+
+
+function submitEmployeeAJAX(event) {
+    event.preventDefault(); // Stops the page from refreshing!
+
+    const form = document.getElementById('addEmployeeForm');
+    const formData = new FormData(form);
+
+    // Make sure we tell the backend we are trying to add an employee
+    if (!formData.has('action')) {
+        formData.append('action', 'add_employee'); 
+    }
+
+    fetch(form.action,  {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const emp = data.employee;
+            const tbody = document.getElementById('staffTableBody');
+            
+            // 🟢 Build the exact HTML row you provided
+            const newRow = document.createElement('tr');
+            newRow.className = "staff-row border-t border-gray-100 hover:bg-gray-50 bg-green-50 transition-all duration-500";
+            newRow.setAttribute('data-dept', emp.department);
+            
+            newRow.innerHTML = `
+                <td class="py-4 px-6 font-bold">${emp.emp_id}</td>
+                <td class="py-4 px-6">${emp.first_name} ${emp.last_name}</td>
+                <td class="py-4 px-6">${emp.department}</td>
+                <td class="py-4 px-6 text-center">
+                    <button type="button" onclick="event.preventDefault(); openPhotoModal('${emp.db_id}', '${emp.first_name}');" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-md font-bold transition shadow-sm inline-flex items-center gap-1">
+                        📸 Upload Master Photo
+                    </button>
+                </td>
+                <td class="py-4 px-6 text-right">
+                    <form method="POST" action="/dashboard/hr/remove-employee/${emp.emp_id}/" onsubmit="return confirm('⚠️ Deactivate ${emp.first_name}?');" class="m-0">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${formData.get('csrfmiddlewaretoken')}">
+                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition">
+                            🗑️ Deactivate
+                        </button>
+                    </form>
+                </td>
+            `;
+
+            // 🟢 Slide it into the top of the table
+            tbody.insertBefore(newRow, tbody.firstChild);
+
+            // 🟢 Remove the green highlight after 2 seconds so it blends in naturally
+            setTimeout(() => {
+                newRow.classList.remove('bg-green-50');
+            }, 2000);
+
+            // Clear the form and close the modal (if you are using a modal)
+            form.reset();
+            // document.getElementById('addEmployeeModal').classList.add('hidden'); // Uncomment if using a modal!
+
+            alert("✅ Employee Added Successfully!");
+        } else {
+            alert('❌ Error: ' + (data.message || 'Could not save employee.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("Server error occurred.");
+    });
+}
+</script>
+</body>
+</html>
