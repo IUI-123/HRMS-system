@@ -3,8 +3,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
-  <title>Grievance | Attendance System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grievance | Accounts</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; min-height: 100vh; }
@@ -107,16 +107,17 @@
 
 <aside class="sidebar">
   <div class="sidebar-brand">
-    <h2>Attendance</h2>
+    <h2>Accounts</h2>
     <p>Hello, {{ request.user.first_name|default:request.user.username }}</p>
   </div>
   <nav class="sidebar-nav">
-    <a href="{% url 'employee_dashboard' %}" class="nav-item">📊 Dashboard</a>
-    <a href="{% url 'employee_dashboard' %}" class="nav-item">📝 Leave Status</a>
-    <a href="{% url 'employee_dashboard' %}" class="nav-item">🚪 Resignation</a>
-    <a href="{% url 'employee_dashboard' %}" class="nav-item">👨‍👩‍👧‍👦 Dependents &amp; BGV</a>
-    <a href="{% url 'grievance' %}" class="nav-item active">🛡 Grievance</a>
-  <a href="/dashboard/policies/" class="nav-item">📋 Policies</a>
+    <a href="{% url 'accounts_dashboard' %}" class="nav-item">💰 Payroll &amp; Slips</a>
+    <a href="{% url 'accounts_dashboard' %}" class="nav-item">⚙️ Employee Details</a>
+    <a href="{% url 'accounts_dashboard' %}" class="nav-item">📸 My Attendance</a>
+    <a href="{% url 'accounts_dashboard' %}" class="nav-item">📝 My Leaves</a>
+    <a href="{% url 'accounts_dashboard' %}" class="nav-item">🚪 Resignation</a>
+    <a href="{% url 'accounts_dashboard' %}" class="nav-item">👨‍👩‍👧‍👦 Dependents &amp; BGV</a>
+    <a href="{% url 'accounts_grievance' %}" class="nav-item active">🛡 Grievance</a>
   </nav>
   <div class="sidebar-footer">
     <a href="{% url 'logout_view' %}" class="logout-btn">Logout</a>
@@ -157,7 +158,7 @@
         </div>
       </div>
       <div class="card-body">
-        <form method="POST" action="{% url 'submit_grievance' %}" id="gform">
+        <form method="POST" action="{% url 'accounts_grievance' %}" id="gform">
           {% csrf_token %}
           <div class="field">
             <label>Category <span class="req">*</span></label>
@@ -280,7 +281,7 @@
   </div>
 </div>
 
-<div id="toast">✅ Grievance submitted!.</div>
+<div id="toast">✅ Grievance submitted!</div>
 
 <script>
 const GD = {

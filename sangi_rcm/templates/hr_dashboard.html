@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <title>HR Admin - Sangi RCM</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -16,7 +16,7 @@
     </style>
 </head>
 
-<body class="bg-[#f4f7fb] flex flex-col md:flex-row h-screen overflow-hidden font-sans">
+<body class="bg-[#f4f7fb] flex flex-col md:flex-row min-h-screen font-sans">
 
     <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
 
@@ -76,14 +76,15 @@
     <a href="{% url 'hr_notice_board' %}" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">
         <span class="text-xl">📢</span> Company Notices
     </a>
-</nav>
+                <a href="/dashboard/policies/" class="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-white/10 text-gray-300 transition">📋 Policies</a>
+            </nav>
         </div>
         <div class="p-4">
             <a href="{% url 'logout_view' %}" class="block w-full text-center bg-[#ef4444] hover:bg-red-600 text-white font-bold py-3 rounded-lg transition shadow-lg">Logout</a>
         </div>
     </aside>
 
-    <main class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+    <main class="flex-1 p-4 md:p-8 relative ">
 
         {% if messages %}
         <div class="mb-6 space-y-2 max-w-4xl" id="old-messages">

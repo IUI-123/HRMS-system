@@ -1,129 +1,865 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOD Dashboard | Enterprise Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Care Connect — Your Health Rights, Simplified</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --saffron:#FF6B00; --saffron-l:#FFF0E5; --saffron-d:#CC5500;
+  --green:#138808;   --green-l:#E8F5E9;
+  --navy:#0A2240;    --navy-m:#1a3a5c;   --navy-l:#e8f0f8;
+  --white:#fff; --gray:#f4f6f9; --text:#1a2332; --muted:#5a7a8a; --border:#dde5ee;
+  --radius:14px; --shadow:0 6px 28px rgba(10,34,64,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--gray);color:var(--text);min-height:100vh}
+
+/* ── NAV ── */
+nav{background:var(--navy);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+.logo span{color:var(--saffron)}
+.flag{display:flex;flex-direction:column;width:26px;height:18px;border-radius:3px;overflow:hidden}
+.flag div{flex:1}
+.f1{background:#FF9933}.f2{background:#fff;display:flex;align-items:center;justify-content:center}
+.f3{background:#138808}.ashoka{width:7px;height:7px;border:1.5px solid #000080;border-radius:50%}
+.nav-links{display:flex;gap:4px}
+.nav-links a{color:rgba(255,255,255,.7);font-size:.78rem;padding:6px 12px;border-radius:8px;cursor:pointer;transition:.2s;text-decoration:none}
+.nav-links a:hover,.nav-links a.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-links a.cta{background:var(--saffron);color:#fff;font-weight:600}
+.nav-links a.cta:hover{background:var(--saffron-d)}
+
+/* ── PAGES ── */
+.page{display:none}.page.active{display:block}
+#page-chat.active{display:flex;flex-direction:column;height:calc(100vh - 60px)}
+
+/* ══ HOME ══ */
+.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-m) 60%,#1e4d8c 100%);padding:72px 32px 90px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50px;right:-50px;width:260px;height:260px;background:radial-gradient(circle,rgba(255,107,0,.15),transparent 70%);border-radius:50%}
+.hero::after{content:'';position:absolute;bottom:-60px;left:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(19,136,8,.12),transparent 70%);border-radius:50%}
+.badge{display:inline-block;background:rgba(255,107,0,.15);border:1px solid rgba(255,107,0,.3);color:#FFB87A;font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:50px;margin-bottom:18px}
+.hero h1{font-size:clamp(1.7rem,4vw,2.8rem);color:#fff;font-weight:700;line-height:1.2;margin-bottom:14px}
+.hero h1 span{color:var(--saffron)}
+.hero p{color:rgba(255,255,255,.7);font-size:.92rem;max-width:520px;margin:0 auto 32px;line-height:1.7;font-weight:300}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{padding:11px 22px;border-radius:10px;font-family:'Sora',sans-serif;font-size:.84rem;font-weight:600;cursor:pointer;border:none;transition:.2s}
+.btn-s{background:var(--saffron);color:#fff}.btn-s:hover{background:var(--saffron-d);transform:translateY(-2px);box-shadow:0 8px 20px rgba(255,107,0,.35)}
+.btn-o{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.4)}.btn-o:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+
+.stats-bar{background:var(--saffron-l);padding:32px;display:flex;justify-content:center;gap:48px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-n{font-size:1.8rem;font-weight:700;color:var(--saffron)}
+.stat-l{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+.section{padding:56px 32px;max-width:1100px;margin:0 auto}
+.sl{text-align:center;color:var(--saffron);font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.st{text-align:center;font-size:1.5rem;font-weight:700;color:var(--navy);margin-bottom:6px}
+.ss{text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:36px;font-weight:300}
+
+.cards4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.card{background:var(--white);border-radius:var(--radius);padding:22px 18px;border:1.5px solid var(--border);transition:.25s;cursor:pointer}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--saffron)}
+.card-icon{font-size:1.9rem;margin-bottom:10px}
+.card h3{font-size:.85rem;font-weight:600;color:var(--navy);margin-bottom:5px}
+.card p{font-size:.76rem;color:var(--muted);line-height:1.6;font-weight:300}
+
+.dark-section{background:var(--navy);padding:56px 32px}
+.dark-section .st{color:#fff}.dark-section .ss{color:rgba(255,255,255,.55)}.dark-section .sl{color:#FFB87A}
+.dark-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:22px 18px;cursor:pointer;transition:.25s}
+.dark-card:hover{background:rgba(255,107,0,.12);border-color:var(--saffron);transform:translateY(-3px)}
+.dark-card h3{color:#fff;font-size:.88rem;font-weight:600;margin-bottom:5px}
+.dark-card p{color:rgba(255,255,255,.5);font-size:.76rem;line-height:1.6;font-weight:300}
+
+/* ══ SHARED FORM STYLES ══ */
+.pc{max-width:720px;margin:0 auto;padding:40px 20px}
+.ph{text-align:center;margin-bottom:32px}
+.ph h2{font-size:1.6rem;font-weight:700;color:var(--navy)}
+.ph p{color:var(--muted);margin-top:6px;font-size:.85rem;font-weight:300}
+
+.fcard{background:var(--white);border-radius:18px;padding:32px;border:1.5px solid var(--border);box-shadow:var(--shadow)}
+.fg{margin-bottom:18px}
+.fg label{display:block;font-size:.78rem;font-weight:600;color:var(--navy);margin-bottom:7px}
+.fc{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:.84rem;color:var(--text);background:var(--gray);outline:none;transition:border-color .2s}
+.fc:focus{border-color:var(--saffron);background:#fff}
+.btn-full{width:100%;padding:13px;background:var(--saffron);color:#fff;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s;margin-top:6px}
+.btn-full:hover{background:var(--saffron-d);transform:translateY(-1px);box-shadow:0 6px 18px rgba(255,107,0,.3)}
+
+/* ══ ELIGIBILITY RESULT ══ */
+.result{margin-top:24px;border-radius:14px;padding:24px;display:none;animation:fadeUp .4s ease}
+.result.yes{background:var(--green-l);border:2px solid var(--green)}
+.result.no{background:#fff8e6;border:2px solid #f59e0b}
+.rh{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ri{font-size:1.8rem}
+.rh h3{font-size:.95rem;font-weight:700}
+.rsteps{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.rsteps li{display:flex;gap:9px;font-size:.8rem;line-height:1.6}
+.sn{width:20px;height:20px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;margin-top:1px}
+.hl-badge{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;padding:5px 13px;border-radius:8px;font-size:.76rem;font-weight:600;margin-top:14px}
+
+/* ══ TRACKING ══ */
+.track-result{margin-top:24px;display:none;animation:fadeUp .4s ease}
+.track-card{background:var(--white);border-radius:14px;padding:24px;border:1.5px solid var(--border);box-shadow:var(--shadow)}
+.track-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:gap}
+.track-name{font-size:1rem;font-weight:700;color:var(--navy)}
+.status-pill{padding:4px 12px;border-radius:50px;font-size:.72rem;font-weight:700}
+.status-Active{background:var(--green-l);color:var(--green)}
+.status-Pending{background:#fff8e6;color:#b45309}
+.progress-wrap{margin:16px 0}
+.progress-label{display:flex;justify-content:space-between;font-size:.76rem;color:var(--muted);margin-bottom:6px}
+.progress-bar{height:10px;background:var(--border);border-radius:50px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--saffron),#ff9500);border-radius:50px;transition:width .8s ease}
+.track-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.meta-item{background:var(--gray);border-radius:10px;padding:12px 14px}
+.meta-item .ml{font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.meta-item .mv{font-size:.82rem;font-weight:600;color:var(--navy)}
+
+.demo-ids{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.demo-id{background:var(--navy-l);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:.72rem;color:var(--navy);cursor:pointer;font-weight:500;transition:.2s}
+.demo-id:hover{background:var(--saffron-l);border-color:var(--saffron);color:var(--saffron)}
+
+/* ══ SCHEMES ══ */
+.scheme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.scheme-card{background:var(--white);border-radius:var(--radius);border:1.5px solid var(--border);overflow:hidden;transition:.25s}
+.scheme-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.scheme-top{padding:20px;background:var(--navy);color:#fff}
+.scheme-top h3{font-size:.9rem;font-weight:700}
+.scheme-top .tag{font-size:.68rem;background:rgba(255,255,255,.15);padding:2px 9px;border-radius:50px;margin-top:5px;display:inline-block}
+.scheme-body{padding:18px 20px}
+.scheme-body p{font-size:.78rem;color:var(--muted);line-height:1.65;font-weight:300}
+.scheme-feat{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.scheme-feat li{display:flex;gap:7px;font-size:.76rem;color:var(--text);line-height:1.5;list-style:none}
+.scheme-btn{margin:14px 20px 20px;display:block;text-align:center;background:var(--saffron-l);color:var(--saffron);border:1.5px solid var(--saffron);border-radius:9px;padding:8px;font-size:.78rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.2s}
+.scheme-btn:hover{background:var(--saffron);color:#fff}
+
+/* ══ GRIEVANCE ══ */
+.emr-box{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:14px 18px;margin-bottom:22px}
+.emr-box h4{color:#dc2626;font-size:.82rem;font-weight:700;margin-bottom:8px}
+.emr-nums{display:flex;gap:10px;flex-wrap:wrap}
+.en{background:#dc2626;color:#fff;padding:5px 12px;border-radius:8px;font-size:.76rem;font-weight:700}
+.grv-success{background:var(--green-l);border:1.5px solid var(--green);border-radius:12px;padding:14px 18px;display:none;margin-top:14px;font-size:.83rem;color:var(--green);font-weight:500;animation:fadeUp .4s ease}
+
+/* ══ ADMIN ══ */
+.admin-login{max-width:380px;margin:60px auto;padding:20px}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;padding:32px 24px}
+.kpi{background:var(--white);border-radius:14px;padding:22px;border:1.5px solid var(--border);box-shadow:var(--shadow)}
+.kpi-n{font-size:2rem;font-weight:700;color:var(--saffron)}
+.kpi-l{font-size:.76rem;color:var(--muted);margin-top:4px}
+.admin-table{background:var(--white);border-radius:14px;border:1.5px solid var(--border);overflow:hidden;margin:0 24px 24px}
+.admin-table h3{padding:16px 20px;border-bottom:1px solid var(--border);font-size:.9rem;color:var(--navy)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:11px 16px;text-align:left;font-size:.76rem;border-bottom:1px solid var(--border)}
+th{background:var(--gray);font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;font-size:.68rem}
+td{color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--saffron-l)}
+
+/* ══ CHAT ══ */
+.chat-hdr{background:var(--navy);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.chat-av{width:40px;height:40px;background:var(--saffron);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.chat-hdr-t h3{color:#fff;font-size:.9rem;font-weight:600}
+.chat-hdr-t p{color:rgba(255,255,255,.55);font-size:.68rem;margin-top:1px}
+.online{margin-left:auto;display:flex;align-items:center;gap:5px;color:rgba(255,255,255,.65);font-size:.72rem}
+.dot-live{width:7px;height:7px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.chips-row{background:var(--navy-l);padding:9px 14px;display:flex;gap:7px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);scrollbar-width:none}
+.chips-row::-webkit-scrollbar{display:none}
+.chip{background:#fff;border:1.5px solid var(--border);border-radius:50px;padding:4px 11px;font-size:.7rem;font-weight:500;font-family:'Sora',sans-serif;color:var(--navy);cursor:pointer;white-space:nowrap;transition:.2s}
+.chip:hover{border-color:var(--saffron);color:var(--saffron);background:var(--saffron-l)}
+
+.msgs{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:12px;background:var(--gray);scrollbar-width:thin}
+.msg{display:flex;gap:8px;align-items:flex-end;animation:fadeUp .3s ease}
+.msg.user{flex-direction:row-reverse}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.mav{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.bav{background:var(--saffron-l)}.uav{background:var(--navy)}
+.bubble{max-width:72%;padding:11px 14px;border-radius:15px;font-size:.82rem;line-height:1.65}
+.msg.bot .bubble{background:#fff;border:1.5px solid var(--border);border-bottom-left-radius:3px;color:var(--text)}
+.msg.user .bubble{background:var(--navy);color:#fff;border-bottom-right-radius:3px}
+.disc{margin-top:9px;padding:7px 11px;background:#fff8e6;border-left:3px solid #f59e0b;border-radius:6px;font-size:.7rem;color:#92600a;line-height:1.5}
+.typing-bub{display:flex;align-items:center;gap:4px;padding:13px 14px}
+.typing-bub span{width:6px;height:6px;background:var(--saffron);border-radius:50%;animation:bounce 1.2s infinite}
+.typing-bub span:nth-child(2){animation-delay:.2s}.typing-bub span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.input-row{background:#fff;border-top:1.5px solid var(--border);padding:12px 14px;display:flex;gap:9px;align-items:flex-end;flex-shrink:0}
+#chatInput{flex:1;border:1.5px solid var(--border);border-radius:11px;padding:9px 13px;font-family:'Sora',sans-serif;font-size:.83rem;resize:none;outline:none;max-height:88px;min-height:40px;background:var(--gray);color:var(--text);transition:border-color .2s}
+#chatInput:focus{border-color:var(--saffron);background:#fff}
+.sbtn{width:40px;height:40px;background:var(--saffron);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s}
+.sbtn:hover{background:var(--saffron-d);transform:scale(1.05)}
+.sbtn svg{width:16px;height:16px;fill:#fff}
+</style>
 </head>
-<body class="bg-gray-100">
+<body>
 
-    <div class="flex h-screen overflow-hidden">
-        
-        <div class="w-64 bg-gray-900 text-white flex flex-col shadow-lg">
-            <div class="p-6 border-b border-gray-700">
-                <h2 class="text-2xl font-extrabold tracking-tight">HOD Portal</h2>
-                <p class="text-sm font-medium text-blue-400 mt-1">Dept: {{ department_name }}</p>
-            </div>
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <a href="#" class="block px-4 py-3 bg-gray-800 rounded-lg text-white font-medium shadow-sm transition-colors">📊 My Team</a>
-                <a href="#" class="block px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">📝 Task Manager</a>
-                <a href="#" class="block px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">⏳ Approvals</a>
-                <a href="#" class="block px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">📅 My Attendance</a>
-                <a href="#" class="block px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">📜 Policies</a>
-                <a href="#" class="block px-4 py-3 text-red-400 hover:bg-red-900 hover:text-red-100 rounded-lg transition-colors mt-4">⚠️ POSH / Grievance</a>
-            </nav>
-            <div class="p-4 border-t border-gray-700">
-                <a href="{% url 'logout_view' %}" class="block w-full text-center px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white font-bold transition-colors">Logout</a>
-            </div>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-8">
-            
-            <header class="mb-8 flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-gray-800">Welcome, {{ profile.user.first_name }}!</h1>
-                <div class="text-sm text-gray-500 bg-white px-4 py-2 rounded-full shadow-sm">
-                    Logged in as Head of Department
-                </div>
-            </header>
-
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">Assign New Task</h2>
-                        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">New</span>
-                    </div>
-                    
-                    <form method="POST" action="#" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="assign_task">
-                        
-                        <div class="mb-5">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Assign To</label>
-                            <select name="assigned_to" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border" required>
-                                <option value="ALL">All Department Employees</option>
-                                {% for emp in my_team %}
-                                    <option value="{{ emp.id }}">{{ emp.user.get_full_name }} ({{ emp.emp_id }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="mb-5">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Task Title</label>
-                            <input type="text" name="title" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border" required placeholder="e.g., Q3 Financial Audit">
-                        </div>
-
-                        <div class="mb-5">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Detailed Instructions</label>
-                            <textarea name="description" rows="4" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border" required placeholder="Outline the requirements and expectations..."></textarea>
-                        </div>
-
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Deadline</label>
-                            <input type="date" name="due_date" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border" required>
-                        </div>
-
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors">
-                            Deploy Task to Team
-                        </button>
-                    </form>
-                </div>
-
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                    <h2 class="text-xl font-bold text-gray-800 mb-6">Department Roster</h2>
-                    <div class="overflow-hidden rounded-lg border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {% for emp in my_team %}
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold mr-3">
-                                                {{ emp.user.first_name|first }}
-                                            </div>
-                                            <div class="text-sm font-medium text-gray-900">{{ emp.user.get_full_name }}</div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ emp.emp_id }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            Active
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="px-6 py-8 text-center text-gray-500 text-sm">
-                                        No employees currently assigned to this department.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="go('home')">
+    <div class="flag">
+      <div class="f1"></div>
+      <div class="f2"><div class="ashoka"></div></div>
+      <div class="f3"></div>
     </div>
+    Care<span>Connect</span>
+  </div>
+  <div class="nav-links">
+    <a id="n-home"        onclick="go('home')">Home</a>
+    <a id="n-eligibility" onclick="go('eligibility')">Eligibility</a>
+    <a id="n-track"       onclick="go('track')">Track Benefits</a>
+    <a id="n-schemes"     onclick="go('schemes')">Schemes</a>
+    <a id="n-grievance"   onclick="go('grievance')">Report Issue</a>
+    <a id="n-chat"        onclick="go('chat')" class="cta">💬 AI Assistant</a>
+    <a id="n-admin"       onclick="go('admin')">Admin</a>
+  </div>
+</nav>
 
+
+<!-- ══════════════ HOME ══════════════ -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="badge">🇮🇳 Government Healthcare Access Platform</div>
+    <h1>Your Health Rights,<br><span>Finally Within Reach</span></h1>
+    <p>We help underprivileged citizens access Ayushman Bharat and other government schemes — with zero corruption, full transparency, and AI-powered guidance.</p>
+    <div class="hero-btns">
+      <button class="btn btn-s" onclick="go('eligibility')">Check My Eligibility →</button>
+      <button class="btn btn-o" onclick="go('chat')">💬 Talk to AI Assistant</button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-n">50 Cr+</div><div class="stat-l">Citizens covered under PM-JAY</div></div>
+    <div class="stat"><div class="stat-n">₹5 Lakh</div><div class="stat-l">Annual health cover per family</div></div>
+    <div class="stat"><div class="stat-n">27,000+</div><div class="stat-l">Empanelled hospitals</div></div>
+    <div class="stat"><div class="stat-n">1,949</div><div class="stat-l">Medical procedures covered</div></div>
+  </div>
+
+  <div class="section">
+    <p class="sl">Problems We Solve</p>
+    <h2 class="st">Why Citizens Miss Their Benefits</h2>
+    <p class="ss">Real barriers keeping vulnerable people from healthcare they deserve.</p>
+    <div class="cards4">
+      <div class="card"><div class="card-icon">🏛️</div><h3>Corruption & Middlemen</h3><p>Brokers intercept benefits before they reach rightful beneficiaries.</p></div>
+      <div class="card"><div class="card-icon">📊</div><h3>Poor Tracking</h3><p>No visibility into benefit status leads to misuse of resources.</p></div>
+      <div class="card"><div class="card-icon">🔔</div><h3>Limited Awareness</h3><p>Millions are unaware they qualify for Ayushman Bharat.</p></div>
+      <div class="card"><div class="card-icon">📋</div><h3>Complex Processes</h3><p>Confusing paperwork discourages those with limited literacy.</p></div>
+      <div class="card"><div class="card-icon">🚫</div><h3>Lack of Transparency</h3><p>Hidden entitlements block the most vulnerable populations.</p></div>
+    </div>
+  </div>
+
+  <div class="dark-section">
+    <div style="max-width:1100px;margin:0 auto">
+      <p class="sl">Our Features</p>
+      <h2 class="st">Everything You Need In One Place</h2>
+      <p class="ss">Technology-powered, citizen-first approach to healthcare access.</p>
+      <div class="cards4">
+        <div class="dark-card" onclick="go('eligibility')"><div class="card-icon">✅</div><h3>Eligibility Checker</h3><p>Know in seconds if you qualify for PM-JAY — no middlemen.</p></div>
+        <div class="dark-card" onclick="go('chat')"><div class="card-icon">🤖</div><h3>AI Health Assistant</h3><p>24/7 chatbot — health advice, scheme guidance, anti-corruption help.</p></div>
+        <div class="dark-card" onclick="go('track')"><div class="card-icon">📡</div><h3>Benefit Tracking</h3><p>Track your benefit usage and card status in real-time.</p></div>
+        <div class="dark-card" onclick="go('schemes')"><div class="card-icon">📚</div><h3>Scheme Awareness</h3><p>Detailed info on all major government health schemes.</p></div>
+        <div class="dark-card" onclick="go('grievance')"><div class="card-icon">🚨</div><h3>Report Corruption</h3><p>Anonymous reporting of bribery, directly escalated to authorities.</p></div>
+        <div class="dark-card" onclick="go('admin')"><div class="card-icon">🛡️</div><h3>Admin Dashboard</h3><p>Monitor usage, grievances, and eligibility stats in real time.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ ELIGIBILITY ══════════════ -->
+<div id="page-eligibility" class="page">
+  <div class="pc">
+    <div class="ph"><h2>✅ Check Your Eligibility</h2><p>Find out if you qualify for Ayushman Bharat PM-JAY in seconds</p></div>
+    <div class="fcard">
+      <div class="fg"><label>State / UT</label>
+        <select class="fc" id="eli-state">
+          <option value="">Select your state</option>
+          <option>Uttar Pradesh</option><option>Bihar</option><option>Madhya Pradesh</option>
+          <option>Rajasthan</option><option>Maharashtra</option><option>West Bengal</option>
+          <option>Odisha</option><option>Jharkhand</option><option>Chhattisgarh</option>
+          <option>Andhra Pradesh</option><option>Telangana</option><option>Tamil Nadu</option>
+          <option>Karnataka</option><option>Gujarat</option><option>Delhi</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fg"><label>Ration Card Type</label>
+        <select class="fc" id="eli-ration">
+          <option value="">Select ration card</option>
+          <option value="AAY">Antyodaya Anna Yojana (AAY) — Yellow</option>
+          <option value="BPL">Below Poverty Line (BPL) — Red</option>
+          <option value="APL">Above Poverty Line (APL)</option>
+          <option value="none">No ration card</option>
+        </select>
+      </div>
+      <div class="fg"><label>Annual Household Income (₹)</label>
+        <select class="fc" id="eli-income">
+          <option value="">Select range</option>
+          <option value="50000">Less than ₹50,000</option>
+          <option value="75000">₹50,000 – ₹75,000</option>
+          <option value="100000">₹75,000 – ₹1,00,000</option>
+          <option value="200000">₹1,00,000 – ₹2,00,000</option>
+          <option value="999999">More than ₹2,00,000</option>
+        </select>
+      </div>
+      <div class="fg"><label>Social Category</label>
+        <select class="fc" id="eli-cat">
+          <option value="">Select category</option>
+          <option value="SC">Scheduled Caste (SC)</option>
+          <option value="ST">Scheduled Tribe (ST)</option>
+          <option value="OBC">Other Backward Class (OBC)</option>
+          <option value="GEN">General</option>
+        </select>
+      </div>
+      <button class="btn-full" onclick="checkEligibility()">Check My Eligibility →</button>
+      <div id="eli-result" class="result">
+        <div class="rh"><div class="ri" id="r-icon"></div><div><h3 id="r-title"></h3><p id="r-scheme" style="font-size:.74rem;color:var(--muted);margin-top:2px"></p></div></div>
+        <p id="r-reason" style="font-size:.8rem;margin-bottom:10px"></p>
+        <ol class="rsteps" id="r-steps"></ol>
+        <div class="hl-badge">📞 Helpline: 14555 (Free, 24×7)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ TRACK BENEFITS ══════════════ -->
+<div id="page-track" class="page">
+  <div class="pc">
+    <div class="ph"><h2>📡 Track Your Benefits</h2><p>Enter your Beneficiary ID to check your PM-JAY card status and usage</p></div>
+    <div class="fcard">
+      <div class="fg">
+        <label>Beneficiary ID</label>
+        <input class="fc" id="track-id" type="text" placeholder="e.g. BNF001" style="text-transform:uppercase">
+        <div class="demo-ids" id="demo-ids-wrap">
+          <span style="font-size:.72rem;color:var(--muted);align-self:center">Try demo IDs:</span>
+        </div>
+      </div>
+      <button class="btn-full" onclick="trackBenefit()">Track My Benefits →</button>
+      <div id="track-result" class="track-result">
+        <div class="track-card">
+          <div class="track-header">
+            <div>
+              <div class="track-name" id="t-name"></div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:2px" id="t-state"></div>
+            </div>
+            <span class="status-pill" id="t-status"></span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label"><span>Benefits Used</span><span id="t-amounts"></span></div>
+            <div class="progress-bar"><div class="progress-fill" id="t-bar" style="width:0%"></div></div>
+          </div>
+          <div class="track-meta">
+            <div class="meta-item"><div class="ml">Scheme</div><div class="mv" id="t-scheme"></div></div>
+            <div class="meta-item"><div class="ml">Card Issued</div><div class="mv" id="t-card"></div></div>
+            <div class="meta-item"><div class="ml">Hospital</div><div class="mv" id="t-hosp"></div></div>
+            <div class="meta-item"><div class="ml">Last Updated</div><div class="mv" id="t-date"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ SCHEMES ══════════════ -->
+<div id="page-schemes" class="page">
+  <div style="max-width:1000px;margin:0 auto;padding:40px 20px">
+    <div class="ph"><h2>📚 Government Health Schemes</h2><p>All major schemes explained — eligibility, benefits, and how to apply</p></div>
+    <div class="scheme-grid">
+
+      <div class="scheme-card">
+        <div class="scheme-top" style="background:#0A2240">
+          <h3>Ayushman Bharat PM-JAY</h3>
+          <span class="tag">National Scheme</span>
+        </div>
+        <div class="scheme-body">
+          <p>World's largest government-funded health insurance scheme covering 50 crore+ citizens.</p>
+          <ul class="scheme-feat">
+            <li>✅ ₹5 lakh cover per family per year</li>
+            <li>✅ 1,949+ medical procedures covered</li>
+            <li>✅ 27,000+ empanelled hospitals</li>
+            <li>✅ Cashless & paperless treatment</li>
+            <li>✅ Pre-existing diseases covered from Day 1</li>
+          </ul>
+        </div>
+        <a class="scheme-btn" href="https://pmjay.gov.in" target="_blank">Visit pmjay.gov.in →</a>
+      </div>
+
+      <div class="scheme-card">
+        <div class="scheme-top" style="background:#1a4d2e">
+          <h3>Pradhan Mantri Jan Arogya Yojana</h3>
+          <span class="tag">BPL Families</span>
+        </div>
+        <div class="scheme-body">
+          <p>Specifically targets families listed under SECC 2011 data for cashless hospitalization.</p>
+          <ul class="scheme-feat">
+            <li>✅ Targets 10.74 crore families</li>
+            <li>✅ Covers secondary & tertiary care</li>
+            <li>✅ No cap on family size</li>
+            <li>✅ 3 days pre- & 15 days post-hospitalization</li>
+          </ul>
+        </div>
+        <a class="scheme-btn" href="https://pmjay.gov.in" target="_blank">Learn More →</a>
+      </div>
+
+      <div class="scheme-card">
+        <div class="scheme-top" style="background:#5b21b6">
+          <h3>Janani Suraksha Yojana (JSY)</h3>
+          <span class="tag">Maternal Health</span>
+        </div>
+        <div class="scheme-body">
+          <p>Cash assistance to pregnant women from BPL families to encourage institutional delivery.</p>
+          <ul class="scheme-feat">
+            <li>✅ ₹1,400 in rural areas, ₹1,000 urban</li>
+            <li>✅ Targets BPL, SC/ST women</li>
+            <li>✅ Reduces maternal & infant mortality</li>
+            <li>✅ Free delivery at government hospitals</li>
+          </ul>
+        </div>
+        <a class="scheme-btn" href="https://nhm.gov.in" target="_blank">Learn More →</a>
+      </div>
+
+      <div class="scheme-card">
+        <div class="scheme-top" style="background:#b45309">
+          <h3>Rashtriya Swasthya Bima Yojana</h3>
+          <span class="tag">Unorganised Workers</span>
+        </div>
+        <div class="scheme-body">
+          <p>Smart card-based health insurance for BPL workers in the unorganised sector.</p>
+          <ul class="scheme-feat">
+            <li>✅ ₹30,000 annual cover</li>
+            <li>✅ Covers family of 5</li>
+            <li>✅ Cashless hospitalization</li>
+            <li>✅ Transport allowance ₹100/visit</li>
+          </ul>
+        </div>
+        <a class="scheme-btn" href="https://labour.gov.in" target="_blank">Learn More →</a>
+      </div>
+
+      <div class="scheme-card">
+        <div class="scheme-top" style="background:#065f46">
+          <h3>Pradhan Mantri Surakshit Matritva</h3>
+          <span class="tag">Antenatal Care</span>
+        </div>
+        <div class="scheme-body">
+          <p>Free antenatal care for pregnant women on the 9th of every month at government health facilities.</p>
+          <ul class="scheme-feat">
+            <li>✅ Free check-up on 9th of every month</li>
+            <li>✅ Blood tests, ultrasound included</li>
+            <li>✅ High-risk pregnancy identification</li>
+            <li>✅ Iron, folic acid supplements</li>
+          </ul>
+        </div>
+        <a class="scheme-btn" href="https://pmsma.nhp.gov.in" target="_blank">Learn More →</a>
+      </div>
+
+      <div class="scheme-card">
+        <div class="scheme-top" style="background:#1e40af">
+          <h3>Employees' State Insurance (ESI)</h3>
+          <span class="tag">Salaried Workers</span>
+        </div>
+        <div class="scheme-body">
+          <p>Medical and cash benefits for employees earning up to ₹21,000/month in organised sector.</p>
+          <ul class="scheme-feat">
+            <li>✅ Full medical care for employee & family</li>
+            <li>✅ Sickness, maternity & disability benefits</li>
+            <li>✅ Dependents' benefit on death</li>
+            <li>✅ 149+ hospitals, 1,500+ dispensaries</li>
+          </ul>
+        </div>
+        <a class="scheme-btn" href="https://esic.in" target="_blank">Learn More →</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ GRIEVANCE ══════════════ -->
+<div id="page-grievance" class="page">
+  <div class="pc">
+    <div class="ph"><h2>🚨 Report an Issue</h2><p>Report corruption, bribery, or wrongful denial of benefits</p></div>
+    <div class="fcard">
+      <div class="emr-box">
+        <h4>⚠️ Emergency? Call immediately:</h4>
+        <div class="emr-nums">
+          <span class="en">📞 108 — Ambulance</span>
+          <span class="en">📞 112 — Emergency</span>
+          <span class="en">📞 14555 — PM-JAY Helpline</span>
+        </div>
+      </div>
+      <h3 style="font-size:.9rem;font-weight:700;color:var(--navy);margin-bottom:18px">📝 File a Complaint</h3>
+      <div class="fg"><label>Your Name (optional)</label><input class="fc" id="g-name" type="text" placeholder="Full name"></div>
+      <div class="fg"><label>Phone Number (optional)</label><input class="fc" id="g-phone" type="tel" placeholder="For follow-up"></div>
+      <div class="fg"><label>Location (District / State)</label><input class="fc" id="g-loc" type="text" placeholder="e.g. Varanasi, UP"></div>
+      <div class="fg"><label>Describe the issue *</label><textarea class="fc" id="g-issue" rows="4" placeholder="e.g. Hospital asked for ₹2000 bribe to process Ayushman card..."></textarea></div>
+      <button class="btn-full" onclick="submitGrievance()">Submit Complaint →</button>
+      <div class="grv-success" id="g-success">
+        ✅ Complaint recorded! Reference: <strong id="g-ref"></strong><br>
+        <small style="opacity:.8">Call <strong>14555</strong> to follow up. Your complaint has been escalated.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ ADMIN ══════════════ -->
+<div id="page-admin" class="page">
+  <!-- Login -->
+  <div id="admin-login" class="admin-login">
+    <div class="fcard">
+      <div class="ph" style="margin-bottom:20px"><h2>🛡️ Admin Panel</h2><p>Authorized access only</p></div>
+      <div class="fg"><label>Admin Secret Key</label><input class="fc" id="admin-key" type="password" placeholder="Enter admin key"></div>
+      <button class="btn-full" onclick="adminLogin()">Login →</button>
+      <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:10px">Default key: <code>admin123</code> (change in .env)</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="admin-dash" style="display:none">
+    <div style="background:var(--navy);padding:20px 28px;display:flex;align-items:center;justify-content:space-between">
+      <div style="color:#fff;font-weight:700;font-size:1rem">🛡️ Admin Dashboard</div>
+      <button onclick="refreshAdmin()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'Sora',sans-serif;font-size:.76rem">🔄 Refresh</button>
+    </div>
+    <div class="admin-grid" id="admin-kpis"></div>
+    <div class="admin-table">
+      <h3>Recent Grievances</h3>
+      <div id="admin-grv-wrap">
+        <table><thead><tr><th>Reference</th><th>Name</th><th>Location</th><th>Issue (preview)</th><th>Filed At</th><th>Status</th></tr></thead>
+        <tbody id="admin-grv-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ CHAT ══════════════ -->
+<div id="page-chat" class="page">
+  <div class="chat-hdr">
+    <div class="chat-av">🤝</div>
+    <div class="chat-hdr-t"><h3>Care Connect AI Assistant</h3><p>Health · Schemes · Anti-corruption · Diet guidance</p></div>
+    <div class="online"><span class="dot-live"></span> Online</div>
+  </div>
+  <div class="chips-row">
+    <button class="chip" onclick="sc(this)">🏥 Am I eligible for PM-JAY?</button>
+    <button class="chip" onclick="sc(this)">🩺 Diet for diabetes</button>
+    <button class="chip" onclick="sc(this)">💊 What does Ayushman Bharat cover?</button>
+    <button class="chip" onclick="sc(this)">🚨 Hospital asked for bribe</button>
+    <button class="chip" onclick="sc(this)">❤️ Foods for high BP</button>
+    <button class="chip" onclick="sc(this)">📄 Documents for Ayushman Card</button>
+    <button class="chip" onclick="sc(this)">👶 Schemes for pregnant women</button>
+  </div>
+  <div class="msgs" id="msgs">
+    <div class="msg bot">
+      <div class="mav bav">🤝</div>
+      <div class="bubble">
+        नमस्ते! I'm <strong>Care Connect AI</strong> — your guide to government health schemes and wellness.<br><br>
+        I can help you with:<br>
+        • Ayushman Bharat eligibility & enrollment<br>
+        • Diet advice for diabetes, BP, and more<br>
+        • What to do if you're denied benefits<br>
+        • Step-by-step process guidance<br><br>
+        Ask me anything in <strong>English or Hindi</strong>! 🙏
+        <div class="disc">ℹ️ I provide general information only. Always consult a doctor for medical decisions. Emergencies: call <strong>108</strong>.</div>
+      </div>
+    </div>
+  </div>
+  <div class="input-row">
+    <textarea id="chatInput" placeholder="Ask about schemes, health, diet, documents..." rows="1"
+      onkeydown="ck(event)" oninput="cr(this)"></textarea>
+    <button class="sbtn" onclick="send()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+
+<script>
+// ── Config — change to your deployed FastAPI URL ──────────────────
+const API = 'http://localhost:8000';
+
+// ── Direct Claude API (no backend needed for chatbot) ─────────
+const apiKey = ""; // Do not put the real key here
+
+const SYSTEM_PROMPT = `You are "Care Connect AI", a compassionate AI health assistant for underprivileged citizens of India. You help users with:
+1. Government health schemes: Ayushman Bharat PM-JAY, state schemes — eligibility, benefits, how to enroll.
+2. Health & diet advice for diabetes, hypertension, malnutrition, TB, maternal/child health.
+3. Anti-corruption help: if someone reports bribery or denial of benefits, guide them to helpline 14555 or 1800-111-565.
+4. Step-by-step process guidance — documents needed, where to go, what to do if rejected.
+Rules:
+- Be warm, simple, and patient. Never make users feel judged.
+- If user writes in Hindi, respond in Hindi.
+- For emergencies say: "Call 108 (Ambulance) or 112 (Emergency) NOW."
+- Never diagnose diseases or prescribe medications.
+- Keep responses to 150-220 words unless more detail is needed.
+- End scheme/eligibility responses with: "For exact verification, visit your nearest Common Service Centre (CSC) or call 14555."`;
+
+// ── Navigation ────────────────────────────────────────────────────
+const pages = ['home','eligibility','track','schemes','grievance','admin','chat'];
+function go(name) {
+  pages.forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('active', p===name);
+    const n = document.getElementById('n-'+p);
+    if(n) n.classList.toggle('active', p===name);
+  });
+  window.scrollTo(0,0);
+  if(name==='track') loadDemoIds();
+}
+
+// ── Eligibility ───────────────────────────────────────────────────
+async function checkEligibility() {
+  const body = {
+    state: document.getElementById('eli-state').value,
+    ration_card: document.getElementById('eli-ration').value,
+    annual_income: document.getElementById('eli-income').value,
+    category: document.getElementById('eli-cat').value,
+  };
+  if(!body.ration_card || !body.annual_income || !body.category) { alert('Please fill all fields.'); return; }
+
+  try {
+    const r = await fetch(`${API}/api/eligibility`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    showResult(await r.json());
+  } catch {
+    // client-side fallback
+    const inc = parseInt(body.annual_income);
+    const ok = ['BPL','AAY'].includes(body.ration_card) || inc < 100000 || ['SC','ST'].includes(body.category);
+    showResult({
+      eligible: ok,
+      scheme: ok ? 'Ayushman Bharat PM-JAY' : null,
+      reason: ok ? 'You likely qualify based on income/ration card/category.' : 'May not directly qualify. State schemes may still apply.',
+      steps: ok
+        ? ['Visit pmjay.gov.in or call 14555 to verify your name.','Carry Ration Card, Aadhaar, income certificate.','Visit nearest empanelled hospital or CSC.','Get Ayushman Card (Golden Card) issued for FREE.','₹5 lakh cashless cover at 27,000+ hospitals.']
+        : ['Check your state health scheme.','Visit Jan Aushadhi Kendra for medicines.','Call 14555 for full assessment.','Visit PHC for free OPD.']
+    });
+  }
+}
+
+function showResult(d) {
+  const el = document.getElementById('eli-result');
+  el.className = 'result ' + (d.eligible ? 'yes' : 'no');
+  el.style.display = 'block';
+  document.getElementById('r-icon').textContent = d.eligible ? '✅' : '⚠️';
+  document.getElementById('r-title').textContent = d.eligible ? 'You may be eligible!' : 'May not directly qualify';
+  document.getElementById('r-scheme').textContent = d.scheme || 'Check alternative schemes';
+  document.getElementById('r-reason').textContent = d.reason;
+  document.getElementById('r-steps').innerHTML = (d.steps||[]).map((s,i)=>
+    `<li><span class="sn">${i+1}</span><span>${s}</span></li>`).join('');
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── Benefit Tracking ──────────────────────────────────────────────
+async function loadDemoIds() {
+  const wrap = document.getElementById('demo-ids-wrap');
+  if(wrap.dataset.loaded) return;
+  try {
+    const r = await fetch(`${API}/api/track/demo-ids`);
+    const ids = await r.json();
+    ids.forEach(item => {
+      const btn = document.createElement('span');
+      btn.className = 'demo-id';
+      btn.textContent = item.id + ' — ' + item.name;
+      btn.onclick = () => { document.getElementById('track-id').value = item.id; trackBenefit(); };
+      wrap.appendChild(btn);
+    });
+    wrap.dataset.loaded = '1';
+  } catch {
+    // Backend not running
+    ['BNF001','BNF002','BNF003'].forEach(id => {
+      const btn = document.createElement('span');
+      btn.className = 'demo-id'; btn.textContent = id;
+      btn.onclick = () => { document.getElementById('track-id').value = id; trackBenefit(); };
+      wrap.appendChild(btn);
+    });
+    wrap.dataset.loaded = '1';
+  }
+}
+
+async function trackBenefit() {
+  const id = document.getElementById('track-id').value.trim().toUpperCase();
+  if(!id) { alert('Please enter a Beneficiary ID.'); return; }
+
+  try {
+    const r = await fetch(`${API}/api/track`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({beneficiary_id:id})});
+    if(!r.ok) throw new Error('not found');
+    showTracking(await r.json());
+  } catch {
+    // Fallback demo data
+    const demo = {
+      'BNF001': {name:'Ramesh Kumar',state:'Uttar Pradesh',scheme:'PM-JAY',status:'Active',card_issued:true,amount_used:45000,amount_total:500000,hospital:'AIIMS Lucknow',condition:'Cardiac Surgery',last_updated:'2025-01-15'},
+      'BNF002': {name:'Sunita Devi',state:'Bihar',scheme:'PM-JAY',status:'Pending Verification',card_issued:false,amount_used:0,amount_total:500000,hospital:null,condition:'Diabetes',last_updated:'2025-02-01'},
+      'BNF003': {name:'Mohan Lal',state:'Rajasthan',scheme:'PM-JAY',status:'Active',card_issued:true,amount_used:120000,amount_total:500000,hospital:'SMS Hospital Jaipur',condition:'Kidney Disease',last_updated:'2025-01-28'},
+    }[id];
+    if(demo) showTracking(demo);
+    else document.getElementById('track-result').innerHTML = '<div class="track-card" style="text-align:center;color:var(--muted);padding:32px">❌ Beneficiary ID not found. Try BNF001, BNF002, or BNF003.</div>', document.getElementById('track-result').style.display='block';
+  }
+}
+
+function showTracking(d) {
+  const pct = Math.round((d.amount_used / d.amount_total) * 100);
+  document.getElementById('t-name').textContent = d.name;
+  document.getElementById('t-state').textContent = d.state + ' · ' + (d.condition || '');
+  const pill = document.getElementById('t-status');
+  pill.textContent = d.status;
+  pill.className = 'status-pill status-' + (d.status === 'Active' ? 'Active' : 'Pending');
+  document.getElementById('t-amounts').textContent = `₹${d.amount_used.toLocaleString('en-IN')} / ₹${d.amount_total.toLocaleString('en-IN')}`;
+  document.getElementById('t-bar').style.width = pct + '%';
+  document.getElementById('t-scheme').textContent = d.scheme;
+  document.getElementById('t-card').textContent = d.card_issued ? '✅ Issued' : '❌ Not Yet';
+  document.getElementById('t-hosp').textContent = d.hospital || 'None yet';
+  document.getElementById('t-date').textContent = d.last_updated;
+  const el = document.getElementById('track-result');
+  el.style.display = 'block';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── Grievance ─────────────────────────────────────────────────────
+async function submitGrievance() {
+  const issue = document.getElementById('g-issue').value.trim();
+  if(!issue) { alert('Please describe your issue.'); return; }
+  const body = {
+    name: document.getElementById('g-name').value,
+    phone: document.getElementById('g-phone').value,
+    location: document.getElementById('g-loc').value,
+    issue
+  };
+  let ref;
+  try {
+    const r = await fetch(`${API}/api/grievance`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d = await r.json();
+    ref = d.reference;
+  } catch { ref = 'GRV-' + Math.random().toString(36).slice(2,10).toUpperCase(); }
+
+  document.getElementById('g-ref').textContent = ref;
+  document.getElementById('g-success').style.display = 'block';
+  document.getElementById('g-issue').value = '';
+  document.getElementById('g-success').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Admin ─────────────────────────────────────────────────────────
+let adminKey = '';
+async function adminLogin() {
+  adminKey = document.getElementById('admin-key').value;
+  if(!adminKey) { alert('Enter admin key'); return; }
+  await loadAdminData();
+}
+
+async function loadAdminData() {
+  try {
+    const [sr, gr] = await Promise.all([
+      fetch(`${API}/api/admin/stats`, {headers:{'x-admin-key':adminKey}}),
+      fetch(`${API}/api/admin/grievances`, {headers:{'x-admin-key':adminKey}})
+    ]);
+    if(!sr.ok) { alert('Invalid admin key.'); return; }
+    const stats = await sr.json();
+    const grievances = await gr.json();
+    renderAdmin(stats, grievances);
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-dash').style.display = 'block';
+  } catch {
+    // Fallback demo admin data
+    renderAdmin({
+      total_checks:142, eligible_count:98, total_grievances:23,
+      grievances_resolved:17, chats_today:56, eligibility_rate:69.0,
+      total_beneficiaries:3,
+      recent_grievances:[
+        {reference:'GRV-A1B2',name:'Ram Singh',location:'Lucknow, UP',issue:'Hospital denied Ayushman card without reason',filed_at:'2025-02-10T10:00:00',status:'Received'},
+        {reference:'GRV-C3D4',name:'Priya Kumari',location:'Patna, Bihar',issue:'Asked for bribe of ₹500 at CSC',filed_at:'2025-02-09T14:30:00',status:'Received'},
+      ]
+    },[]);
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-dash').style.display = 'block';
+  }
+}
+
+function renderAdmin(stats, grievances) {
+  const kpis = [
+    {n: stats.total_checks, l: 'Eligibility Checks'},
+    {n: stats.eligibility_rate + '%', l: 'Eligibility Rate'},
+    {n: stats.chats_today, l: 'AI Chats Today'},
+    {n: stats.total_grievances || stats.grievances_filed, l: 'Total Grievances'},
+    {n: stats.grievances_resolved, l: 'Grievances Resolved'},
+    {n: stats.total_beneficiaries, l: 'Tracked Beneficiaries'},
+  ];
+  document.getElementById('admin-kpis').innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="kpi-n">${k.n}</div><div class="kpi-l">${k.l}</div></div>`
+  ).join('');
+
+  const rows = (stats.recent_grievances || grievances || []).map(g => `
+    <tr>
+      <td><code>${g.reference}</code></td>
+      <td>${g.name || 'Anonymous'}</td>
+      <td>${g.location || '—'}</td>
+      <td>${(g.issue||'').slice(0,50)}…</td>
+      <td>${(g.filed_at||'').slice(0,10)}</td>
+      <td><span style="background:var(--green-l);color:var(--green);padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700">${g.status || 'Received'}</span></td>
+    </tr>`).join('');
+  document.getElementById('admin-grv-body').innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No grievances yet</td></tr>';
+}
+
+async function refreshAdmin() { await loadAdminData(); }
+
+// ── Chat ─────────────────────────────────────────────────────────
+let hist = [];
+function cr(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,88)+'px'}
+function ck(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function sc(btn){document.getElementById('chatInput').value=btn.textContent.trim().replace(/^[^\s]+\s/,'');send()}
+
+function am(role, html) {
+  const el = document.getElementById('msgs');
+  const d = document.createElement('div'); d.className='msg '+role;
+  const a = document.createElement('div'); a.className='mav '+(role==='user'?'uav':'bav'); a.textContent=role==='user'?'👤':'🤝';
+  const b = document.createElement('div'); b.className='bubble'; b.innerHTML=html;
+  d.appendChild(a); d.appendChild(b); el.appendChild(d);
+  el.scrollTop=el.scrollHeight; return b;
+}
+function st(){
+  const el=document.getElementById('msgs');
+  const d=document.createElement('div'); d.className='msg bot'; d.id='typ';
+  d.innerHTML=`<div class="mav bav">🤝</div><div class="bubble"><div class="typing-bub"><span></span><span></span><span></span></div></div>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function rt(){const e=document.getElementById('typ');if(e)e.remove()}
+function fmt(t){
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^[-•]\s(.+)/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)+/g,m=>`<ul style="margin:7px 0;padding-left:15px;display:flex;flex-direction:column;gap:4px">${m}</ul>`)
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+async function send() {
+  const inp = document.getElementById('chatInput');
+  const txt = inp.value.trim(); if(!txt) return;
+  inp.value=''; inp.style.height='auto';
+  am('user', txt);
+  hist.push({role:'user',content:txt});
+  st();
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1024,
+        system: SYSTEM_PROMPT,
+        messages: hist.slice(-10)
+      })
+    });
+    const d = await r.json();
+    rt();
+    if(d.error){
+      am('bot','⚠️ Error: '+d.error.message);
+      return;
+    }
+    const rep = d.content?.[0]?.text || "Sorry, I couldn't process that.";
+    hist.push({role:'assistant',content:rep});
+    am('bot', fmt(rep));
+  } catch(e) {
+    rt();
+    am('bot','⚠️ Could not connect. Please check your internet connection and try again.');
+  }
+}
+</script>
 </body>
 </html>

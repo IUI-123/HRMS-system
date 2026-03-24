@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
+  <title>Company Policies</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; min-height: 100vh; }
+    .sidebar { width: 230px; background: #1a1f2e; color: #fff; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; }
+    .sidebar-brand { padding: 28px 24px 8px; }
+    .sidebar-brand h2 { font-size: 22px; font-weight: 700; }
+    .sidebar-brand p { font-size: 13px; color: #8b93a7; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #8b93a7; text-decoration: none; margin-bottom: 4px; transition: all .18s; }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,.13); color: #fff; }
+    .sidebar-footer { padding: 16px 12px 24px; }
+    .logout-btn { display: block; width: 100%; padding: 12px; background: #e74c3c; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; }
+    .logout-btn:hover { background: #c0392b; }
+    .main { margin-left: 230px; flex: 1; padding: 32px 32px 60px; }
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; color: #1a1f2e; }
+    .page-header p { font-size: 14px; color: #666; margin-top: 4px; }
+    .tab-bar { display: flex; gap: 12px; margin-bottom: 28px; }
+    .tab-btn { padding: 12px 28px; font-size: 14px; font-weight: 600; border-radius: 10px; border: 2px solid #e5e7eb; cursor: pointer; background: #fff; color: #666; transition: all .18s; }
+    .tab-btn.active { background: #1a1f2e; color: #fff; border-color: #1a1f2e; }
+    .tab-btn:hover:not(.active) { border-color: #1a1f2e; color: #1a1f2e; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .policy-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 12px rgba(0,0,0,.07); margin-bottom: 16px; overflow: hidden; border: 1.5px solid #e5e7eb; transition: box-shadow .18s; }
+    .policy-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+    .policy-head { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .policy-title { font-size: 16px; font-weight: 600; color: #1a1f2e; display: flex; align-items: center; gap: 10px; }
+    .policy-meta { font-size: 12px; color: #aaa; margin-top: 3px; }
+    .policy-arrow { font-size: 18px; color: #aaa; transition: transform .2s; }
+    .policy-card.open .policy-arrow { transform: rotate(90deg); }
+    .policy-body { padding: 0 24px; max-height: 0; overflow: hidden; transition: max-height .3s ease, padding .3s; }
+    .policy-card.open .policy-body { max-height: 2000px; padding: 0 24px 24px; }
+    .policy-content { font-size: 14px; color: #555; line-height: 1.9; white-space: pre-wrap; border-top: 1px solid #f0f0f0; padding-top: 16px; }
+    .empty { text-align: center; padding: 60px 20px; color: #aaa; }
+    .empty .ei { font-size: 48px; margin-bottom: 12px; }
+    .empty p { font-size: 14px; }
+    .posh-banner { background: linear-gradient(135deg, #1a1f2e, #2d3550); border-radius: 14px; padding: 28px 32px; color: #fff; margin-bottom: 24px; }
+    .posh-banner h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .posh-banner p { font-size: 14px; opacity: .75; line-height: 1.7; }
+    .posh-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 12px rgba(0,0,0,.07); margin-bottom: 16px; overflow: hidden; border: 1.5px solid #fca5a5; }
+    .posh-card .policy-head { background: #fef2f2; }
+    .posh-card .policy-title { color: #e74c3c; }
+    .badge-posh { background: #fef2f2; color: #e74c3c; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fca5a5; }
+    @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 20px 16px; } }
+  </style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h2>Attendance</h2>
+    <p>Hello, {{ request.user.first_name|default:request.user.username }}</p>
+  </div>
+  <nav class="sidebar-nav">
+    {% if request.user.employeeprofile.is_hr %}
+      <a href="{% url 'hr_dashboard' %}" class="nav-item">📊 Dashboard</a>
+    {% elif request.user.employeeprofile.is_accounts %}
+      <a href="{% url 'accounts_dashboard' %}" class="nav-item">💰 Payroll &amp; Slips</a>
+    {% else %}
+      <a href="{% url 'employee_dashboard' %}" class="nav-item">📊 Dashboard</a>
+    {% endif %}
+    <a href="{% url 'company_policies' %}" class="nav-item active">📋 Policies</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="{% url 'logout_view' %}" class="logout-btn">Logout</a>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <h1>📋 Company Policies</h1>
+    <p>All company policies and guidelines. Last updated by management.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('general', this)">📝 Company Policies</button>
+    <button class="tab-btn" onclick="switchTab('posh', this)">🚨 POSH Guidelines</button>
+  </div>
+
+  <!-- GENERAL POLICIES -->
+  <div id="tab-general" class="tab-pane active">
+    {% if policies %}
+      {% for p in policies %}
+      <div class="policy-card" id="pc-{{ p.pk }}">
+        <div class="policy-head" onclick="toggleCard('pc-{{ p.pk }}')">
+          <div>
+            <div class="policy-title">📄 {{ p.title }}</div>
+            <div class="policy-meta">Last updated: {{ p.last_updated|date:"d M Y" }}</div>
+          </div>
+          <span class="policy-arrow">›</span>
+        </div>
+        <div class="policy-body">
+          <div class="policy-content">{{ p.content }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty"><div class="ei">📭</div><p>No company policies have been added yet.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- POSH POLICIES -->
+  <div id="tab-posh" class="tab-pane">
+    <div class="posh-banner">
+      <h2>🚨 POSH — Prevention of Sexual Harassment</h2>
+      <p>The company is committed to providing a safe, respectful, and inclusive workplace for all employees. These guidelines are governed by the POSH Act, 2013.</p>
+    </div>
+    {% if posh_policies %}
+      {% for p in posh_policies %}
+      <div class="policy-card posh-card" id="pp-{{ p.pk }}">
+        <div class="policy-head" onclick="toggleCard('pp-{{ p.pk }}')">
+          <div>
+            <div class="policy-title">🚨 {{ p.title }} <span class="badge-posh">POSH</span></div>
+            <div class="policy-meta">Last updated: {{ p.last_updated|date:"d M Y" }}</div>
+          </div>
+          <span class="policy-arrow">›</span>
+        </div>
+        <div class="policy-body">
+          <div class="policy-content">{{ p.content }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty"><div class="ei">⚖️</div><p>No POSH guidelines have been added yet.</p></div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+function switchTab(id, el) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+}
+function toggleCard(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -207,3 +207,7 @@ JAZZMIN_UI_TWEAKS = {
         "success": "btn-success"
     }
 }
+# Media files (user uploads)
+import os
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
