@@ -1709,7 +1709,7 @@ def submit_grievance(request):
 @login_required
 @never_cache
 def hr_grievance_list(request):
-    if not getattr(request.user.employeeprofile, 'is_hr', False):
+    if not getattr(request.user.employeeprofile, 'is_hr', False) and not request.user.is_superuser:
         return redirect('employee_dashboard')
 
     grievances = Grievance.objects.select_related('submitted_by__user').order_by('-submitted_on')
@@ -1739,7 +1739,7 @@ def hr_grievance_list(request):
 
 @login_required
 def hr_grievance_update(request, pk):
-    if not getattr(request.user.employeeprofile, 'is_hr', False):
+    if not getattr(request.user.employeeprofile, 'is_hr', False) and not request.user.is_superuser:
         return redirect('employee_dashboard')
 
     g = get_object_or_404(Grievance, pk=pk)
@@ -1782,98 +1782,6 @@ def accounts_grievance_view(request):
     }
     return render(request, 'accounts_grievance.html', context)
 
-# ── ACCOUNTS GRIEVANCE VIEW ──────────────────────────────────────────
-@login_required
-@never_cache
-def accounts_grievance_view(request):
-    profile = getattr(request.user, 'employeeprofile', None)
-    if not profile or not getattr(profile, 'is_accounts', False):
-        return redirect('employee_dashboard')
-    if request.method == 'POST':
-        category = request.POST.get('category', '').strip()
-        subject  = request.POST.get('subject', '').strip()
-        desc     = request.POST.get('description', '').strip()
-        if category and subject and desc:
-            Grievance.objects.create(
-                submitted_by=profile,
-                category=category,
-                subject=subject,
-                description=desc,
-            )
-            messages.success(request, '✅ Grievance submitted! HR will respond within 5 working days.')
-        else:
-            messages.error(request, '❌ Please fill in all required fields.')
-        return redirect('accounts_grievance')
-    grievances = Grievance.objects.filter(submitted_by=profile).order_by('-submitted_on')
-    context = {
-        'grievances': grievances,
-        'total':      grievances.count(),
-        'open':       grievances.filter(is_resolved=False).count(),
-        'resolved':   grievances.filter(is_resolved=True).count(),
-    }
-    return render(request, 'accounts_grievance.html', context)
-
-# ── ACCOUNTS GRIEVANCE VIEW ──────────────────────────────────────────
-@login_required
-@never_cache
-def accounts_grievance_view(request):
-    profile = getattr(request.user, 'employeeprofile', None)
-    if not profile or not getattr(profile, 'is_accounts', False):
-        return redirect('employee_dashboard')
-    if request.method == 'POST':
-        category = request.POST.get('category', '').strip()
-        subject  = request.POST.get('subject', '').strip()
-        desc     = request.POST.get('description', '').strip()
-        if category and subject and desc:
-            Grievance.objects.create(
-                submitted_by=profile,
-                category=category,
-                subject=subject,
-                description=desc,
-            )
-            messages.success(request, '✅ Grievance submitted! HR will respond within 5 working days.')
-        else:
-            messages.error(request, '❌ Please fill in all required fields.')
-        return redirect('accounts_grievance')
-    grievances = Grievance.objects.filter(submitted_by=profile).order_by('-submitted_on')
-    context = {
-        'grievances': grievances,
-        'total':      grievances.count(),
-        'open':       grievances.filter(is_resolved=False).count(),
-        'resolved':   grievances.filter(is_resolved=True).count(),
-    }
-    return render(request, 'accounts_grievance.html', context)
-
-# ── ACCOUNTS GRIEVANCE VIEW ──────────────────────────────────────────
-@login_required
-@never_cache
-def accounts_grievance_view(request):
-    profile = getattr(request.user, 'employeeprofile', None)
-    if not profile or not getattr(profile, 'is_accounts', False):
-        return redirect('employee_dashboard')
-    if request.method == 'POST':
-        category = request.POST.get('category', '').strip()
-        subject  = request.POST.get('subject', '').strip()
-        desc     = request.POST.get('description', '').strip()
-        if category and subject and desc:
-            Grievance.objects.create(
-                submitted_by=profile,
-                category=category,
-                subject=subject,
-                description=desc,
-            )
-            messages.success(request, '✅ Grievance submitted! HR will respond within 5 working days.')
-        else:
-            messages.error(request, '❌ Please fill in all required fields.')
-        return redirect('accounts_grievance')
-    grievances = Grievance.objects.filter(submitted_by=profile).order_by('-submitted_on')
-    context = {
-        'grievances': grievances,
-        'total':      grievances.count(),
-        'open':       grievances.filter(is_resolved=False).count(),
-        'resolved':   grievances.filter(is_resolved=True).count(),
-    }
-    return render(request, 'accounts_grievance.html', context)
 
 # ── COMPANY POLICIES VIEW ────────────────────────────────────────────
 @login_required
@@ -1886,34 +1794,3 @@ def company_policies_view(request):
         'posh_policies': posh_policies,
     }
     return render(request, 'company_policies.html', context)
-
-# ── ACCOUNTS GRIEVANCE VIEW ──────────────────────────────────────────
-@login_required
-@never_cache
-def accounts_grievance_view(request):
-    profile = getattr(request.user, 'employeeprofile', None)
-    if not profile or not getattr(profile, 'is_accounts', False):
-        return redirect('employee_dashboard')
-    if request.method == 'POST':
-        category = request.POST.get('category', '').strip()
-        subject  = request.POST.get('subject', '').strip()
-        desc     = request.POST.get('description', '').strip()
-        if category and subject and desc:
-            Grievance.objects.create(
-                submitted_by=profile,
-                category=category,
-                subject=subject,
-                description=desc,
-            )
-            messages.success(request, '✅ Grievance submitted! HR will respond within 5 working days.')
-        else:
-            messages.error(request, '❌ Please fill in all required fields.')
-        return redirect('accounts_grievance')
-    grievances = Grievance.objects.filter(submitted_by=profile).order_by('-submitted_on')
-    context = {
-        'grievances': grievances,
-        'total':      grievances.count(),
-        'open':       grievances.filter(is_resolved=False).count(),
-        'resolved':   grievances.filter(is_resolved=True).count(),
-    }
-    return render(request, 'accounts_grievance.html', context)

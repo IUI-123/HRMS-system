@@ -40,18 +40,10 @@ urlpatterns = [
     path('dashboard/accounts/payslip/<int:emp_id>/<int:month>/<int:year>/', views.generate_payslip, name='generate_payslip'),
     path('dashboard/accounts/export-annexure/', views.export_annexure_excel, name='export_annexure'),
     path('dashboard/accounts/update-employee/<int:emp_id>/', views.accounts_update_employee, name='accounts_update_employee'),
-
     path('dashboard/accounts/grievance/', views.accounts_grievance_view, name='accounts_grievance'),
 
-    path('dashboard/accounts/grievance/', views.accounts_grievance_view, name='accounts_grievance'),
-
-    path('dashboard/accounts/grievance/', views.accounts_grievance_view, name='accounts_grievance'),
-
+    # ── POLICIES ──────────────────────────────────────────
     path('dashboard/policies/', views.company_policies_view, name='company_policies'),
-
-    path('dashboard/accounts/grievance/', views.accounts_grievance_view, name='accounts_grievance'),
-
-    path('dashboard/accounts/grievance/', views.accounts_grievance_view, name='accounts_grievance'),
 
     # ── HOD ───────────────────────────────────────────────
     path('dashboard/hod/', views.hod_dashboard, name='hod_dashboard'),

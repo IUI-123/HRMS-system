@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EmployeeProfile, Attendance, LeaveRequest, CompanyHoliday
+from .models import EmployeeProfile, Attendance, LeaveRequest, CompanyHoliday, CompanyPolicy
 from django.utils import timezone
 from datetime import timedelta
 from .models import CompanySettings # Make sure to import it!
@@ -177,3 +177,11 @@ from .models import AllowedIP
 class AllowedIPAdmin(admin.ModelAdmin):
     list_display = ('ip_address', 'description', 'created_at')
     search_fields = ('ip_address', 'description')
+@admin.register(CompanyPolicy)
+class CompanyPolicyAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_posh_guideline', 'last_updated')
+    list_filter = ('is_posh_guideline',)
+    search_fields = ('title',)
+    def has_add_permission(self, request): return request.user.is_superuser
+    def has_change_permission(self, request, obj=None): return request.user.is_superuser
+    def has_delete_permission(self, request, obj=None): return request.user.is_superuser
